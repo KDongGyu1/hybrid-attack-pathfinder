@@ -1,0 +1,278 @@
+{
+  "project": "Hybrid Attack Path Analysis System",
+  "engine": "Backend 1 - Neo4j Attack Path Engine",
+  "format": "cytoscape.js",
+  "elements": {
+    "nodes": [
+      {
+        "data": {
+          "id": "onprem-admin-server",
+          "label": "On-Prem Admin Server",
+          "type": "ON_PREM_SERVER",
+          "environment": "ON_PREM",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        }
+      },
+      {
+        "data": {
+          "id": "aws-access-key-dev-01",
+          "label": "Stored AWS Access Key",
+          "type": "AWS_ACCESS_KEY",
+          "environment": "ON_PREM",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      },
+      {
+        "data": {
+          "id": "iam-user-dev-01",
+          "label": "Developer IAM User",
+          "type": "IAM_USER",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      },
+      {
+        "data": {
+          "id": "iam-policy-prod-read",
+          "label": "Prod Read Access Policy",
+          "type": "IAM_POLICY",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      },
+      {
+        "data": {
+          "id": "hap-customer-data-s3",
+          "label": "HAP Customer Dummy Data S3",
+          "type": "S3_BUCKET",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      },
+      {
+        "data": {
+          "id": "eks-pod-gitea",
+          "label": "Gitea EKS Pod",
+          "type": "EKS_POD",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        }
+      },
+      {
+        "data": {
+          "id": "k8s-sa-gitea",
+          "label": "Gitea ServiceAccount",
+          "type": "SERVICE_ACCOUNT",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        }
+      },
+      {
+        "data": {
+          "id": "irsa-gitea-role",
+          "label": "IRSA Gitea IAM Role",
+          "type": "IAM_ROLE",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      },
+      {
+        "data": {
+          "id": "iam-policy-gitea-secrets-access",
+          "label": "Gitea Secrets Access Policy",
+          "type": "IAM_POLICY",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      },
+      {
+        "data": {
+          "id": "secret-gitea-db-password",
+          "label": "Gitea DB Password Secret",
+          "type": "SECRETS_MANAGER",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      },
+      {
+        "data": {
+          "id": "rds-postgres-prod",
+          "label": "RDS PostgreSQL",
+          "type": "RDS_POSTGRESQL",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      },
+      {
+        "data": {
+          "id": "internet",
+          "label": "Internet",
+          "type": "INTERNET",
+          "environment": "EXTERNAL",
+          "assetRole": "EXTERNAL",
+          "sensitivityLevel": "PUBLIC",
+          "riskLevel": "HIGH"
+        }
+      },
+      {
+        "data": {
+          "id": "app-gitea",
+          "label": "Gitea Application",
+          "type": "GITEA_APP",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "data": {
+          "id": "rel-onprem-stores-access-key",
+          "source": "onprem-admin-server",
+          "target": "aws-access-key-dev-01",
+          "label": "STORES_CREDENTIAL",
+          "type": "STORES_CREDENTIAL",
+          "action": null
+        }
+      },
+      {
+        "data": {
+          "id": "rel-key-belongs-iam-user",
+          "source": "aws-access-key-dev-01",
+          "target": "iam-user-dev-01",
+          "label": "BELONGS_TO",
+          "type": "BELONGS_TO",
+          "action": null
+        }
+      },
+      {
+        "data": {
+          "id": "rel-user-has-prod-read-policy",
+          "source": "iam-user-dev-01",
+          "target": "iam-policy-prod-read",
+          "label": "HAS_POLICY",
+          "type": "HAS_POLICY",
+          "action": null
+        }
+      },
+      {
+        "data": {
+          "id": "rel-policy-can-read-customer-s3",
+          "source": "iam-policy-prod-read",
+          "target": "hap-customer-data-s3",
+          "label": "HAS_PERMISSION",
+          "type": "HAS_PERMISSION",
+          "action": "s3:GetObject"
+        }
+      },
+      {
+        "data": {
+          "id": "rel-pod-uses-sa",
+          "source": "eks-pod-gitea",
+          "target": "k8s-sa-gitea",
+          "label": "USES_SERVICE_ACCOUNT",
+          "type": "USES_SERVICE_ACCOUNT",
+          "action": null
+        }
+      },
+      {
+        "data": {
+          "id": "rel-sa-irsa-role",
+          "source": "k8s-sa-gitea",
+          "target": "irsa-gitea-role",
+          "label": "IRSA_LINKED_TO",
+          "type": "IRSA_LINKED_TO",
+          "action": null
+        }
+      },
+      {
+        "data": {
+          "id": "rel-role-has-secrets-policy",
+          "source": "irsa-gitea-role",
+          "target": "iam-policy-gitea-secrets-access",
+          "label": "HAS_POLICY",
+          "type": "HAS_POLICY",
+          "action": null
+        }
+      },
+      {
+        "data": {
+          "id": "rel-policy-can-read-secret",
+          "source": "iam-policy-gitea-secrets-access",
+          "target": "secret-gitea-db-password",
+          "label": "HAS_PERMISSION",
+          "type": "HAS_PERMISSION",
+          "action": "secretsmanager:GetSecretValue"
+        }
+      },
+      {
+        "data": {
+          "id": "rel-secret-for-rds",
+          "source": "secret-gitea-db-password",
+          "target": "rds-postgres-prod",
+          "label": "STORES_CREDENTIAL_FOR",
+          "type": "STORES_CREDENTIAL_FOR",
+          "action": null
+        }
+      },
+      {
+        "data": {
+          "id": "rel-internet-gitea",
+          "source": "internet",
+          "target": "app-gitea",
+          "label": "EXPOSED_TO_INTERNET",
+          "type": "EXPOSED_TO_INTERNET",
+          "action": null
+        }
+      },
+      {
+        "data": {
+          "id": "rel-gitea-rds",
+          "source": "app-gitea",
+          "target": "rds-postgres-prod",
+          "label": "CONNECTS_TO_DB",
+          "type": "CONNECTS_TO_DB",
+          "action": null
+        }
+      },
+      {
+        "data": {
+          "id": "rel-policy-can-read-gitea-secret",
+          "source": "iam-policy-prod-read",
+          "target": "secret-gitea-db-password",
+          "label": "HAS_PERMISSION",
+          "type": "HAS_PERMISSION",
+          "action": "secretsmanager:GetSecretValue"
+        }
+      }
+    ]
+  },
+  "summary": {
+    "nodeCount": 13,
+    "edgeCount": 12
+  }
+}

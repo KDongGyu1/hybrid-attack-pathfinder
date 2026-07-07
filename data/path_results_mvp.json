@@ -1,0 +1,1351 @@
+{
+  "project": "Hybrid Attack Path Analysis System",
+  "engine": "Backend 1 - Neo4j Attack Path Engine",
+  "neo4jUri": "bolt://127.0.0.1:7687",
+  "scenarioCount": 5,
+  "results": [
+    {
+      "scenarioId": "scn-onprem-access-key-to-s3",
+      "scenarioName": "온프레미스 서버 침해 후 AWS Access Key를 통한 S3 접근",
+      "sourceAssetId": "onprem-admin-server",
+      "targetAssetId": "hap-customer-data-s3",
+      "riskScore": 10.0,
+      "riskLevel": "CRITICAL",
+      "pathCount": 1,
+      "nodes": [
+        {
+          "id": "onprem-admin-server",
+          "label": "On-Prem Admin Server",
+          "type": "ON_PREM_SERVER",
+          "environment": "ON_PREM",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        },
+        {
+          "id": "aws-access-key-dev-01",
+          "label": "Stored AWS Access Key",
+          "type": "AWS_ACCESS_KEY",
+          "environment": "ON_PREM",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "iam-user-dev-01",
+          "label": "Developer IAM User",
+          "type": "IAM_USER",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "iam-policy-prod-read",
+          "label": "Prod Read Access Policy",
+          "type": "IAM_POLICY",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "hap-customer-data-s3",
+          "label": "HAP Customer Dummy Data S3",
+          "type": "S3_BUCKET",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-onprem-stores-access-key",
+          "source": "onprem-admin-server",
+          "target": "aws-access-key-dev-01",
+          "type": "STORES_CREDENTIAL",
+          "action": null
+        },
+        {
+          "id": "rel-key-belongs-iam-user",
+          "source": "aws-access-key-dev-01",
+          "target": "iam-user-dev-01",
+          "type": "BELONGS_TO",
+          "action": null
+        },
+        {
+          "id": "rel-user-has-prod-read-policy",
+          "source": "iam-user-dev-01",
+          "target": "iam-policy-prod-read",
+          "type": "HAS_POLICY",
+          "action": null
+        },
+        {
+          "id": "rel-policy-can-read-customer-s3",
+          "source": "iam-policy-prod-read",
+          "target": "hap-customer-data-s3",
+          "type": "HAS_PERMISSION",
+          "action": "s3:GetObject"
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-scn-onprem-access-key-to-s3-1",
+          "sourceAssetId": "onprem-admin-server",
+          "targetAssetId": "hap-customer-data-s3",
+          "hopCount": 4,
+          "riskScore": 10.0,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "onprem-admin-server",
+            "aws-access-key-dev-01",
+            "iam-user-dev-01",
+            "iam-policy-prod-read",
+            "hap-customer-data-s3"
+          ],
+          "edgeIds": [
+            "rel-onprem-stores-access-key",
+            "rel-key-belongs-iam-user",
+            "rel-user-has-prod-read-policy",
+            "rel-policy-can-read-customer-s3"
+          ],
+          "summary": "온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 탈취하여 IAM User와 IAM Policy를 거쳐 고객 데이터 S3 Bucket에 접근 가능한 경로",
+          "nodes": [
+            {
+              "id": "onprem-admin-server",
+              "label": "On-Prem Admin Server",
+              "type": "ON_PREM_SERVER",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "aws-access-key-dev-01",
+              "label": "Stored AWS Access Key",
+              "type": "AWS_ACCESS_KEY",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-user-dev-01",
+              "label": "Developer IAM User",
+              "type": "IAM_USER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-policy-prod-read",
+              "label": "Prod Read Access Policy",
+              "type": "IAM_POLICY",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "hap-customer-data-s3",
+              "label": "HAP Customer Dummy Data S3",
+              "type": "S3_BUCKET",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-onprem-stores-access-key",
+              "source": "onprem-admin-server",
+              "target": "aws-access-key-dev-01",
+              "type": "STORES_CREDENTIAL",
+              "action": null
+            },
+            {
+              "id": "rel-key-belongs-iam-user",
+              "source": "aws-access-key-dev-01",
+              "target": "iam-user-dev-01",
+              "type": "BELONGS_TO",
+              "action": null
+            },
+            {
+              "id": "rel-user-has-prod-read-policy",
+              "source": "iam-user-dev-01",
+              "target": "iam-policy-prod-read",
+              "type": "HAS_POLICY",
+              "action": null
+            },
+            {
+              "id": "rel-policy-can-read-customer-s3",
+              "source": "iam-policy-prod-read",
+              "target": "hap-customer-data-s3",
+              "type": "HAS_PERMISSION",
+              "action": "s3:GetObject"
+            }
+          ]
+        }
+      ],
+      "summary": "온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 탈취하여 IAM User와 IAM Policy를 거쳐 고객 데이터 S3 Bucket에 접근 가능한 경로"
+    },
+    {
+      "scenarioId": "scn-eks-irsa-to-secrets",
+      "scenarioName": "EKS Pod 침해 후 IRSA를 통한 Secrets Manager 접근",
+      "sourceAssetId": "eks-pod-gitea",
+      "targetAssetId": "secret-gitea-db-password",
+      "riskScore": 10.0,
+      "riskLevel": "CRITICAL",
+      "pathCount": 1,
+      "nodes": [
+        {
+          "id": "eks-pod-gitea",
+          "label": "Gitea EKS Pod",
+          "type": "EKS_POD",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        },
+        {
+          "id": "k8s-sa-gitea",
+          "label": "Gitea ServiceAccount",
+          "type": "SERVICE_ACCOUNT",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        },
+        {
+          "id": "irsa-gitea-role",
+          "label": "IRSA Gitea IAM Role",
+          "type": "IAM_ROLE",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "iam-policy-gitea-secrets-access",
+          "label": "Gitea Secrets Access Policy",
+          "type": "IAM_POLICY",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "secret-gitea-db-password",
+          "label": "Gitea DB Password Secret",
+          "type": "SECRETS_MANAGER",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-pod-uses-sa",
+          "source": "eks-pod-gitea",
+          "target": "k8s-sa-gitea",
+          "type": "USES_SERVICE_ACCOUNT",
+          "action": null
+        },
+        {
+          "id": "rel-sa-irsa-role",
+          "source": "k8s-sa-gitea",
+          "target": "irsa-gitea-role",
+          "type": "IRSA_LINKED_TO",
+          "action": null
+        },
+        {
+          "id": "rel-role-has-secrets-policy",
+          "source": "irsa-gitea-role",
+          "target": "iam-policy-gitea-secrets-access",
+          "type": "HAS_POLICY",
+          "action": null
+        },
+        {
+          "id": "rel-policy-can-read-secret",
+          "source": "iam-policy-gitea-secrets-access",
+          "target": "secret-gitea-db-password",
+          "type": "HAS_PERMISSION",
+          "action": "secretsmanager:GetSecretValue"
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-scn-eks-irsa-to-secrets-1",
+          "sourceAssetId": "eks-pod-gitea",
+          "targetAssetId": "secret-gitea-db-password",
+          "hopCount": 4,
+          "riskScore": 10.0,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "eks-pod-gitea",
+            "k8s-sa-gitea",
+            "irsa-gitea-role",
+            "iam-policy-gitea-secrets-access",
+            "secret-gitea-db-password"
+          ],
+          "edgeIds": [
+            "rel-pod-uses-sa",
+            "rel-sa-irsa-role",
+            "rel-role-has-secrets-policy",
+            "rel-policy-can-read-secret"
+          ],
+          "summary": "Gitea EKS Pod 침해 후 ServiceAccount와 IRSA Role을 거쳐 Secrets Manager의 DB 비밀번호 Secret에 접근 가능한 경로",
+          "nodes": [
+            {
+              "id": "eks-pod-gitea",
+              "label": "Gitea EKS Pod",
+              "type": "EKS_POD",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "k8s-sa-gitea",
+              "label": "Gitea ServiceAccount",
+              "type": "SERVICE_ACCOUNT",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "irsa-gitea-role",
+              "label": "IRSA Gitea IAM Role",
+              "type": "IAM_ROLE",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-policy-gitea-secrets-access",
+              "label": "Gitea Secrets Access Policy",
+              "type": "IAM_POLICY",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "secret-gitea-db-password",
+              "label": "Gitea DB Password Secret",
+              "type": "SECRETS_MANAGER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-pod-uses-sa",
+              "source": "eks-pod-gitea",
+              "target": "k8s-sa-gitea",
+              "type": "USES_SERVICE_ACCOUNT",
+              "action": null
+            },
+            {
+              "id": "rel-sa-irsa-role",
+              "source": "k8s-sa-gitea",
+              "target": "irsa-gitea-role",
+              "type": "IRSA_LINKED_TO",
+              "action": null
+            },
+            {
+              "id": "rel-role-has-secrets-policy",
+              "source": "irsa-gitea-role",
+              "target": "iam-policy-gitea-secrets-access",
+              "type": "HAS_POLICY",
+              "action": null
+            },
+            {
+              "id": "rel-policy-can-read-secret",
+              "source": "iam-policy-gitea-secrets-access",
+              "target": "secret-gitea-db-password",
+              "type": "HAS_PERMISSION",
+              "action": "secretsmanager:GetSecretValue"
+            }
+          ]
+        }
+      ],
+      "summary": "Gitea EKS Pod 침해 후 ServiceAccount와 IRSA Role을 거쳐 Secrets Manager의 DB 비밀번호 Secret에 접근 가능한 경로"
+    },
+    {
+      "scenarioId": "scn-eks-irsa-to-rds",
+      "scenarioName": "EKS Pod 침해 후 Secrets Manager를 통한 RDS 접근",
+      "sourceAssetId": "eks-pod-gitea",
+      "targetAssetId": "rds-postgres-prod",
+      "riskScore": 9.3,
+      "riskLevel": "CRITICAL",
+      "pathCount": 1,
+      "nodes": [
+        {
+          "id": "eks-pod-gitea",
+          "label": "Gitea EKS Pod",
+          "type": "EKS_POD",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        },
+        {
+          "id": "k8s-sa-gitea",
+          "label": "Gitea ServiceAccount",
+          "type": "SERVICE_ACCOUNT",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        },
+        {
+          "id": "irsa-gitea-role",
+          "label": "IRSA Gitea IAM Role",
+          "type": "IAM_ROLE",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "iam-policy-gitea-secrets-access",
+          "label": "Gitea Secrets Access Policy",
+          "type": "IAM_POLICY",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "secret-gitea-db-password",
+          "label": "Gitea DB Password Secret",
+          "type": "SECRETS_MANAGER",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "rds-postgres-prod",
+          "label": "RDS PostgreSQL",
+          "type": "RDS_POSTGRESQL",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-pod-uses-sa",
+          "source": "eks-pod-gitea",
+          "target": "k8s-sa-gitea",
+          "type": "USES_SERVICE_ACCOUNT",
+          "action": null
+        },
+        {
+          "id": "rel-sa-irsa-role",
+          "source": "k8s-sa-gitea",
+          "target": "irsa-gitea-role",
+          "type": "IRSA_LINKED_TO",
+          "action": null
+        },
+        {
+          "id": "rel-role-has-secrets-policy",
+          "source": "irsa-gitea-role",
+          "target": "iam-policy-gitea-secrets-access",
+          "type": "HAS_POLICY",
+          "action": null
+        },
+        {
+          "id": "rel-policy-can-read-secret",
+          "source": "iam-policy-gitea-secrets-access",
+          "target": "secret-gitea-db-password",
+          "type": "HAS_PERMISSION",
+          "action": "secretsmanager:GetSecretValue"
+        },
+        {
+          "id": "rel-secret-for-rds",
+          "source": "secret-gitea-db-password",
+          "target": "rds-postgres-prod",
+          "type": "STORES_CREDENTIAL_FOR",
+          "action": null
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-scn-eks-irsa-to-rds-1",
+          "sourceAssetId": "eks-pod-gitea",
+          "targetAssetId": "rds-postgres-prod",
+          "hopCount": 5,
+          "riskScore": 9.3,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "eks-pod-gitea",
+            "k8s-sa-gitea",
+            "irsa-gitea-role",
+            "iam-policy-gitea-secrets-access",
+            "secret-gitea-db-password",
+            "rds-postgres-prod"
+          ],
+          "edgeIds": [
+            "rel-pod-uses-sa",
+            "rel-sa-irsa-role",
+            "rel-role-has-secrets-policy",
+            "rel-policy-can-read-secret",
+            "rel-secret-for-rds"
+          ],
+          "summary": "Gitea EKS Pod 침해 후 IRSA Role로 Secrets Manager에 접근하고, 저장된 DB Credential을 통해 RDS PostgreSQL까지 이어지는 경로",
+          "nodes": [
+            {
+              "id": "eks-pod-gitea",
+              "label": "Gitea EKS Pod",
+              "type": "EKS_POD",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "k8s-sa-gitea",
+              "label": "Gitea ServiceAccount",
+              "type": "SERVICE_ACCOUNT",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "irsa-gitea-role",
+              "label": "IRSA Gitea IAM Role",
+              "type": "IAM_ROLE",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-policy-gitea-secrets-access",
+              "label": "Gitea Secrets Access Policy",
+              "type": "IAM_POLICY",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "secret-gitea-db-password",
+              "label": "Gitea DB Password Secret",
+              "type": "SECRETS_MANAGER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "rds-postgres-prod",
+              "label": "RDS PostgreSQL",
+              "type": "RDS_POSTGRESQL",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-pod-uses-sa",
+              "source": "eks-pod-gitea",
+              "target": "k8s-sa-gitea",
+              "type": "USES_SERVICE_ACCOUNT",
+              "action": null
+            },
+            {
+              "id": "rel-sa-irsa-role",
+              "source": "k8s-sa-gitea",
+              "target": "irsa-gitea-role",
+              "type": "IRSA_LINKED_TO",
+              "action": null
+            },
+            {
+              "id": "rel-role-has-secrets-policy",
+              "source": "irsa-gitea-role",
+              "target": "iam-policy-gitea-secrets-access",
+              "type": "HAS_POLICY",
+              "action": null
+            },
+            {
+              "id": "rel-policy-can-read-secret",
+              "source": "iam-policy-gitea-secrets-access",
+              "target": "secret-gitea-db-password",
+              "type": "HAS_PERMISSION",
+              "action": "secretsmanager:GetSecretValue"
+            },
+            {
+              "id": "rel-secret-for-rds",
+              "source": "secret-gitea-db-password",
+              "target": "rds-postgres-prod",
+              "type": "STORES_CREDENTIAL_FOR",
+              "action": null
+            }
+          ]
+        }
+      ],
+      "summary": "Gitea EKS Pod 침해 후 IRSA Role로 Secrets Manager에 접근하고, 저장된 DB Credential을 통해 RDS PostgreSQL까지 이어지는 경로"
+    },
+    {
+      "scenarioId": "scn-internet-gitea-to-rds",
+      "scenarioName": "인터넷 노출 Gitea를 통한 RDS 접근",
+      "sourceAssetId": "internet",
+      "targetAssetId": "rds-postgres-prod",
+      "riskScore": 8.7,
+      "riskLevel": "CRITICAL",
+      "pathCount": 1,
+      "nodes": [
+        {
+          "id": "internet",
+          "label": "Internet",
+          "type": "INTERNET",
+          "environment": "EXTERNAL",
+          "assetRole": "EXTERNAL",
+          "sensitivityLevel": "PUBLIC",
+          "riskLevel": "HIGH"
+        },
+        {
+          "id": "app-gitea",
+          "label": "Gitea Application",
+          "type": "GITEA_APP",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        },
+        {
+          "id": "rds-postgres-prod",
+          "label": "RDS PostgreSQL",
+          "type": "RDS_POSTGRESQL",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-internet-gitea",
+          "source": "internet",
+          "target": "app-gitea",
+          "type": "EXPOSED_TO_INTERNET",
+          "action": null
+        },
+        {
+          "id": "rel-gitea-rds",
+          "source": "app-gitea",
+          "target": "rds-postgres-prod",
+          "type": "CONNECTS_TO_DB",
+          "action": null
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-scn-internet-gitea-to-rds-1",
+          "sourceAssetId": "internet",
+          "targetAssetId": "rds-postgres-prod",
+          "hopCount": 2,
+          "riskScore": 8.7,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "internet",
+            "app-gitea",
+            "rds-postgres-prod"
+          ],
+          "edgeIds": [
+            "rel-internet-gitea",
+            "rel-gitea-rds"
+          ],
+          "summary": "인터넷에 노출된 Gitea 애플리케이션 서버 침해 후 RDS PostgreSQL에 접근 가능한 네트워크 기반 공격 경로",
+          "nodes": [
+            {
+              "id": "internet",
+              "label": "Internet",
+              "type": "INTERNET",
+              "environment": "EXTERNAL",
+              "assetRole": "EXTERNAL",
+              "sensitivityLevel": "PUBLIC",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "app-gitea",
+              "label": "Gitea Application",
+              "type": "GITEA_APP",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "rds-postgres-prod",
+              "label": "RDS PostgreSQL",
+              "type": "RDS_POSTGRESQL",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-internet-gitea",
+              "source": "internet",
+              "target": "app-gitea",
+              "type": "EXPOSED_TO_INTERNET",
+              "action": null
+            },
+            {
+              "id": "rel-gitea-rds",
+              "source": "app-gitea",
+              "target": "rds-postgres-prod",
+              "type": "CONNECTS_TO_DB",
+              "action": null
+            }
+          ]
+        }
+      ],
+      "summary": "인터넷에 노출된 Gitea 애플리케이션 서버 침해 후 RDS PostgreSQL에 접근 가능한 네트워크 기반 공격 경로"
+    },
+    {
+      "scenarioId": "scn-onprem-to-restricted-assets",
+      "scenarioName": "온프레미스 서버 침해 후 Restricted 자산 접근 가능 경로",
+      "sourceAssetId": "onprem-admin-server",
+      "targetAssetId": null,
+      "riskScore": 10.0,
+      "riskLevel": "CRITICAL",
+      "pathCount": 6,
+      "nodes": [
+        {
+          "id": "onprem-admin-server",
+          "label": "On-Prem Admin Server",
+          "type": "ON_PREM_SERVER",
+          "environment": "ON_PREM",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "CONFIDENTIAL",
+          "riskLevel": "HIGH"
+        },
+        {
+          "id": "aws-access-key-dev-01",
+          "label": "Stored AWS Access Key",
+          "type": "AWS_ACCESS_KEY",
+          "environment": "ON_PREM",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "iam-user-dev-01",
+          "label": "Developer IAM User",
+          "type": "IAM_USER",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "iam-policy-prod-read",
+          "label": "Prod Read Access Policy",
+          "type": "IAM_POLICY",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "hap-customer-data-s3",
+          "label": "HAP Customer Dummy Data S3",
+          "type": "S3_BUCKET",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "secret-gitea-db-password",
+          "label": "Gitea DB Password Secret",
+          "type": "SECRETS_MANAGER",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        },
+        {
+          "id": "rds-postgres-prod",
+          "label": "RDS PostgreSQL",
+          "type": "RDS_POSTGRESQL",
+          "environment": "PROD",
+          "assetRole": "TARGET",
+          "sensitivityLevel": "RESTRICTED",
+          "riskLevel": "CRITICAL"
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-onprem-stores-access-key",
+          "source": "onprem-admin-server",
+          "target": "aws-access-key-dev-01",
+          "type": "STORES_CREDENTIAL",
+          "action": null
+        },
+        {
+          "id": "rel-key-belongs-iam-user",
+          "source": "aws-access-key-dev-01",
+          "target": "iam-user-dev-01",
+          "type": "BELONGS_TO",
+          "action": null
+        },
+        {
+          "id": "rel-user-has-prod-read-policy",
+          "source": "iam-user-dev-01",
+          "target": "iam-policy-prod-read",
+          "type": "HAS_POLICY",
+          "action": null
+        },
+        {
+          "id": "rel-policy-can-read-customer-s3",
+          "source": "iam-policy-prod-read",
+          "target": "hap-customer-data-s3",
+          "type": "HAS_PERMISSION",
+          "action": "s3:GetObject"
+        },
+        {
+          "id": "rel-policy-can-read-gitea-secret",
+          "source": "iam-policy-prod-read",
+          "target": "secret-gitea-db-password",
+          "type": "HAS_PERMISSION",
+          "action": "secretsmanager:GetSecretValue"
+        },
+        {
+          "id": "rel-secret-for-rds",
+          "source": "secret-gitea-db-password",
+          "target": "rds-postgres-prod",
+          "type": "STORES_CREDENTIAL_FOR",
+          "action": null
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-scn-onprem-to-restricted-assets-1",
+          "sourceAssetId": "onprem-admin-server",
+          "targetAssetId": "aws-access-key-dev-01",
+          "hopCount": 1,
+          "riskScore": 10.0,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "onprem-admin-server",
+            "aws-access-key-dev-01"
+          ],
+          "edgeIds": [
+            "rel-onprem-stores-access-key"
+          ],
+          "summary": "온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색",
+          "nodes": [
+            {
+              "id": "onprem-admin-server",
+              "label": "On-Prem Admin Server",
+              "type": "ON_PREM_SERVER",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "aws-access-key-dev-01",
+              "label": "Stored AWS Access Key",
+              "type": "AWS_ACCESS_KEY",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-onprem-stores-access-key",
+              "source": "onprem-admin-server",
+              "target": "aws-access-key-dev-01",
+              "type": "STORES_CREDENTIAL",
+              "action": null
+            }
+          ]
+        },
+        {
+          "pathId": "path-scn-onprem-to-restricted-assets-2",
+          "sourceAssetId": "onprem-admin-server",
+          "targetAssetId": "iam-user-dev-01",
+          "hopCount": 2,
+          "riskScore": 10.0,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "onprem-admin-server",
+            "aws-access-key-dev-01",
+            "iam-user-dev-01"
+          ],
+          "edgeIds": [
+            "rel-onprem-stores-access-key",
+            "rel-key-belongs-iam-user"
+          ],
+          "summary": "온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색",
+          "nodes": [
+            {
+              "id": "onprem-admin-server",
+              "label": "On-Prem Admin Server",
+              "type": "ON_PREM_SERVER",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "aws-access-key-dev-01",
+              "label": "Stored AWS Access Key",
+              "type": "AWS_ACCESS_KEY",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-user-dev-01",
+              "label": "Developer IAM User",
+              "type": "IAM_USER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-onprem-stores-access-key",
+              "source": "onprem-admin-server",
+              "target": "aws-access-key-dev-01",
+              "type": "STORES_CREDENTIAL",
+              "action": null
+            },
+            {
+              "id": "rel-key-belongs-iam-user",
+              "source": "aws-access-key-dev-01",
+              "target": "iam-user-dev-01",
+              "type": "BELONGS_TO",
+              "action": null
+            }
+          ]
+        },
+        {
+          "pathId": "path-scn-onprem-to-restricted-assets-3",
+          "sourceAssetId": "onprem-admin-server",
+          "targetAssetId": "iam-policy-prod-read",
+          "hopCount": 3,
+          "riskScore": 10.0,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "onprem-admin-server",
+            "aws-access-key-dev-01",
+            "iam-user-dev-01",
+            "iam-policy-prod-read"
+          ],
+          "edgeIds": [
+            "rel-onprem-stores-access-key",
+            "rel-key-belongs-iam-user",
+            "rel-user-has-prod-read-policy"
+          ],
+          "summary": "온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색",
+          "nodes": [
+            {
+              "id": "onprem-admin-server",
+              "label": "On-Prem Admin Server",
+              "type": "ON_PREM_SERVER",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "aws-access-key-dev-01",
+              "label": "Stored AWS Access Key",
+              "type": "AWS_ACCESS_KEY",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-user-dev-01",
+              "label": "Developer IAM User",
+              "type": "IAM_USER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-policy-prod-read",
+              "label": "Prod Read Access Policy",
+              "type": "IAM_POLICY",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-onprem-stores-access-key",
+              "source": "onprem-admin-server",
+              "target": "aws-access-key-dev-01",
+              "type": "STORES_CREDENTIAL",
+              "action": null
+            },
+            {
+              "id": "rel-key-belongs-iam-user",
+              "source": "aws-access-key-dev-01",
+              "target": "iam-user-dev-01",
+              "type": "BELONGS_TO",
+              "action": null
+            },
+            {
+              "id": "rel-user-has-prod-read-policy",
+              "source": "iam-user-dev-01",
+              "target": "iam-policy-prod-read",
+              "type": "HAS_POLICY",
+              "action": null
+            }
+          ]
+        },
+        {
+          "pathId": "path-scn-onprem-to-restricted-assets-4",
+          "sourceAssetId": "onprem-admin-server",
+          "targetAssetId": "hap-customer-data-s3",
+          "hopCount": 4,
+          "riskScore": 10.0,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "onprem-admin-server",
+            "aws-access-key-dev-01",
+            "iam-user-dev-01",
+            "iam-policy-prod-read",
+            "hap-customer-data-s3"
+          ],
+          "edgeIds": [
+            "rel-onprem-stores-access-key",
+            "rel-key-belongs-iam-user",
+            "rel-user-has-prod-read-policy",
+            "rel-policy-can-read-customer-s3"
+          ],
+          "summary": "온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색",
+          "nodes": [
+            {
+              "id": "onprem-admin-server",
+              "label": "On-Prem Admin Server",
+              "type": "ON_PREM_SERVER",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "aws-access-key-dev-01",
+              "label": "Stored AWS Access Key",
+              "type": "AWS_ACCESS_KEY",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-user-dev-01",
+              "label": "Developer IAM User",
+              "type": "IAM_USER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-policy-prod-read",
+              "label": "Prod Read Access Policy",
+              "type": "IAM_POLICY",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "hap-customer-data-s3",
+              "label": "HAP Customer Dummy Data S3",
+              "type": "S3_BUCKET",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-onprem-stores-access-key",
+              "source": "onprem-admin-server",
+              "target": "aws-access-key-dev-01",
+              "type": "STORES_CREDENTIAL",
+              "action": null
+            },
+            {
+              "id": "rel-key-belongs-iam-user",
+              "source": "aws-access-key-dev-01",
+              "target": "iam-user-dev-01",
+              "type": "BELONGS_TO",
+              "action": null
+            },
+            {
+              "id": "rel-user-has-prod-read-policy",
+              "source": "iam-user-dev-01",
+              "target": "iam-policy-prod-read",
+              "type": "HAS_POLICY",
+              "action": null
+            },
+            {
+              "id": "rel-policy-can-read-customer-s3",
+              "source": "iam-policy-prod-read",
+              "target": "hap-customer-data-s3",
+              "type": "HAS_PERMISSION",
+              "action": "s3:GetObject"
+            }
+          ]
+        },
+        {
+          "pathId": "path-scn-onprem-to-restricted-assets-5",
+          "sourceAssetId": "onprem-admin-server",
+          "targetAssetId": "secret-gitea-db-password",
+          "hopCount": 4,
+          "riskScore": 10.0,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "onprem-admin-server",
+            "aws-access-key-dev-01",
+            "iam-user-dev-01",
+            "iam-policy-prod-read",
+            "secret-gitea-db-password"
+          ],
+          "edgeIds": [
+            "rel-onprem-stores-access-key",
+            "rel-key-belongs-iam-user",
+            "rel-user-has-prod-read-policy",
+            "rel-policy-can-read-gitea-secret"
+          ],
+          "summary": "온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색",
+          "nodes": [
+            {
+              "id": "onprem-admin-server",
+              "label": "On-Prem Admin Server",
+              "type": "ON_PREM_SERVER",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "aws-access-key-dev-01",
+              "label": "Stored AWS Access Key",
+              "type": "AWS_ACCESS_KEY",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-user-dev-01",
+              "label": "Developer IAM User",
+              "type": "IAM_USER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-policy-prod-read",
+              "label": "Prod Read Access Policy",
+              "type": "IAM_POLICY",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "secret-gitea-db-password",
+              "label": "Gitea DB Password Secret",
+              "type": "SECRETS_MANAGER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-onprem-stores-access-key",
+              "source": "onprem-admin-server",
+              "target": "aws-access-key-dev-01",
+              "type": "STORES_CREDENTIAL",
+              "action": null
+            },
+            {
+              "id": "rel-key-belongs-iam-user",
+              "source": "aws-access-key-dev-01",
+              "target": "iam-user-dev-01",
+              "type": "BELONGS_TO",
+              "action": null
+            },
+            {
+              "id": "rel-user-has-prod-read-policy",
+              "source": "iam-user-dev-01",
+              "target": "iam-policy-prod-read",
+              "type": "HAS_POLICY",
+              "action": null
+            },
+            {
+              "id": "rel-policy-can-read-gitea-secret",
+              "source": "iam-policy-prod-read",
+              "target": "secret-gitea-db-password",
+              "type": "HAS_PERMISSION",
+              "action": "secretsmanager:GetSecretValue"
+            }
+          ]
+        },
+        {
+          "pathId": "path-scn-onprem-to-restricted-assets-6",
+          "sourceAssetId": "onprem-admin-server",
+          "targetAssetId": "rds-postgres-prod",
+          "hopCount": 5,
+          "riskScore": 9.3,
+          "riskLevel": "CRITICAL",
+          "nodeIds": [
+            "onprem-admin-server",
+            "aws-access-key-dev-01",
+            "iam-user-dev-01",
+            "iam-policy-prod-read",
+            "secret-gitea-db-password",
+            "rds-postgres-prod"
+          ],
+          "edgeIds": [
+            "rel-onprem-stores-access-key",
+            "rel-key-belongs-iam-user",
+            "rel-user-has-prod-read-policy",
+            "rel-policy-can-read-gitea-secret",
+            "rel-secret-for-rds"
+          ],
+          "summary": "온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색",
+          "nodes": [
+            {
+              "id": "onprem-admin-server",
+              "label": "On-Prem Admin Server",
+              "type": "ON_PREM_SERVER",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "CONFIDENTIAL",
+              "riskLevel": "HIGH"
+            },
+            {
+              "id": "aws-access-key-dev-01",
+              "label": "Stored AWS Access Key",
+              "type": "AWS_ACCESS_KEY",
+              "environment": "ON_PREM",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-user-dev-01",
+              "label": "Developer IAM User",
+              "type": "IAM_USER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "iam-policy-prod-read",
+              "label": "Prod Read Access Policy",
+              "type": "IAM_POLICY",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "secret-gitea-db-password",
+              "label": "Gitea DB Password Secret",
+              "type": "SECRETS_MANAGER",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            },
+            {
+              "id": "rds-postgres-prod",
+              "label": "RDS PostgreSQL",
+              "type": "RDS_POSTGRESQL",
+              "environment": "PROD",
+              "assetRole": "TARGET",
+              "sensitivityLevel": "RESTRICTED",
+              "riskLevel": "CRITICAL"
+            }
+          ],
+          "edges": [
+            {
+              "id": "rel-onprem-stores-access-key",
+              "source": "onprem-admin-server",
+              "target": "aws-access-key-dev-01",
+              "type": "STORES_CREDENTIAL",
+              "action": null
+            },
+            {
+              "id": "rel-key-belongs-iam-user",
+              "source": "aws-access-key-dev-01",
+              "target": "iam-user-dev-01",
+              "type": "BELONGS_TO",
+              "action": null
+            },
+            {
+              "id": "rel-user-has-prod-read-policy",
+              "source": "iam-user-dev-01",
+              "target": "iam-policy-prod-read",
+              "type": "HAS_POLICY",
+              "action": null
+            },
+            {
+              "id": "rel-policy-can-read-gitea-secret",
+              "source": "iam-policy-prod-read",
+              "target": "secret-gitea-db-password",
+              "type": "HAS_PERMISSION",
+              "action": "secretsmanager:GetSecretValue"
+            },
+            {
+              "id": "rel-secret-for-rds",
+              "source": "secret-gitea-db-password",
+              "target": "rds-postgres-prod",
+              "type": "STORES_CREDENTIAL_FOR",
+              "action": null
+            }
+          ]
+        }
+      ],
+      "summary": "온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색"
+    }
+  ]
+}
