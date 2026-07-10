@@ -33,3 +33,31 @@ output "soc_db_subnet_ids" {
 output "peering_connection_id" {
   value = module.vpc.peering_connection_id
 }
+
+output "prod_alb_sg_id" {
+  value = module.sg.prod_alb_sg_id
+}
+
+output "prod_app_sg_id" {
+  value = module.sg.prod_app_sg_id
+}
+
+output "prod_db_sg_id" {
+  value = module.sg.prod_db_sg_id
+}
+
+output "soc_alb_sg_id" {
+  value = module.sg.soc_alb_sg_id
+}
+
+output "soc_server_sg_id" {
+  value = module.sg.soc_server_sg_id
+}
+
+output "soc_collector_sg_id" {
+  value = module.sg.soc_collector_sg_id
+}
+
+output "soc_db_sg_id" {
+  value = module.sg.soc_db_sg_id
+}

@@ -20,3 +20,8 @@ variable "prod_nat_count" {
     error_message = "prod_nat_count must be 1 (dev) or 2 (presentation)."
   }
 }
+
+variable "analyst_ip_cidr" {
+  description = "Analyst IP/CIDR allowed to reach the SOC dashboard ALB (e.g. \"1.2.3.4/32\")"
+  type        = string
+}
