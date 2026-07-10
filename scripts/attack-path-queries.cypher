@@ -1,64 +1,169 @@
 // =====================================================
-// Query 1. Internet -> S3 customer data attack path
-// Scenario: EKS ServiceAccount -> IAM Role -> S3 access
+// Hybrid Attack Path Backend1
+// Attack Path Queries
+// Infra Spec v2 aligned
 // =====================================================
-MATCH path = (start {id: "internet"})-[r*1..8]->(target {id: "s3-customer-data"})
+
+
+// =====================================================
+// Q1. S3: On-Prem WordPress → IAM Access Key → S3
+// 하이브리드 핵심 경로
+// =====================================================
+
+MATCH path = (start {id: "hap-onprem-web"})-[r*1..8]->(target {id: "hap-customer-data-s3"})
+WHERE ALL(rel IN relationships(path)
+  WHERE type(rel) IN [
+    "CONNECTS_TO",
+    "HAS_ACCESS_KEY",
+    "AUTHENTICATES_AS",
+    "HAS_PERMISSION",
+    "CAN_ACCESS"
+  ]
+)
+RETURN
+  [node IN nodes(path) | node.id] AS nodeIds,
+  [rel IN relationships(path) | type(rel)] AS relationTypes,
+  path;
+
+
+// =====================================================
+// Q2. S1: IAM Access Key → IAM User → IAM Policy → S3
+// =====================================================
+
+MATCH path = (start {id: "hap-onprem-access-key"})-[r*1..8]->(target {id: "hap-customer-data-s3"})
+WHERE ALL(rel IN relationships(path)
+  WHERE type(rel) IN [
+    "AUTHENTICATES_AS",
+    "HAS_PERMISSION",
+    "CAN_ACCESS"
+  ]
+)
+RETURN
+  [node IN nodes(path) | node.id] AS nodeIds,
+  [rel IN relationships(path) | type(rel)] AS relationTypes,
+  path;
+
+
+// =====================================================
+// Q3. S4: Internet → ALB → Pod → ServiceAccount → IRSA Role → S3
+// =====================================================
+
+MATCH path = (start {id: "internet"})-[r*1..8]->(target {id: "hap-customer-data-s3"})
 WHERE ALL(rel IN relationships(path)
   WHERE type(rel) IN [
     "EXPOSED_TO_INTERNET",
     "ALLOWS_TRAFFIC",
     "CAN_MOVE_TO",
     "USES_SERVICE_ACCOUNT",
-    "ASSUMES_ROLE",
-    "HAS_POLICY",
-    "GRANTS_PERMISSION",
-    "CAN_READ",
-    "CAN_WRITE",
-    "CAN_ACCESS_SECRET"
+    "IRSA_LINKED_TO",
+    "HAS_PERMISSION",
+    "CAN_ACCESS"
   ]
 )
-RETURN path;
+RETURN
+  [node IN nodes(path) | node.id] AS nodeIds,
+  [rel IN relationships(path) | type(rel)] AS relationTypes,
+  path;
 
 
 // =====================================================
-// Query 2. Internet -> RDS attack path
-// Scenario: Public entry point -> compromised workload -> RDS
+// Q4. Internet → ALB → Pod → RDS
 // =====================================================
-MATCH path = (start {id: "internet"})-[r*1..8]->(target {id: "rds-postgres-prod"})
+
+MATCH path = (start {id: "internet"})-[r*1..8]->(target {id: "hap-gitea-db"})
 WHERE ALL(rel IN relationships(path)
   WHERE type(rel) IN [
     "EXPOSED_TO_INTERNET",
     "ALLOWS_TRAFFIC",
     "CAN_MOVE_TO",
-    "USES_SERVICE_ACCOUNT",
-    "ASSUMES_ROLE",
-    "HAS_POLICY",
-    "GRANTS_PERMISSION",
-    "CAN_READ",
-    "CAN_WRITE",
-    "CAN_ACCESS_SECRET"
+    "CONNECTS_TO"
   ]
 )
-RETURN path;
+RETURN
+  [node IN nodes(path) | node.id] AS nodeIds,
+  [rel IN relationships(path) | type(rel)] AS relationTypes,
+  path;
 
 
 // =====================================================
-// Query 3. Pod -> Secrets Manager -> RDS attack path
-// Scenario: Over-permissive Secrets Manager access
+// Q5. Pod → ServiceAccount → IRSA Role → SecretsManager → RDS
 // =====================================================
-MATCH path = (start {id: "pod-gitea-app"})-[r*1..8]->(target {id: "rds-postgres-prod"})
+
+MATCH path = (start {id: "pod-gitea-app"})-[r*1..8]->(target {id: "hap-gitea-db"})
 WHERE ALL(rel IN relationships(path)
   WHERE type(rel) IN [
-    "EXPOSED_TO_INTERNET",
-    "ALLOWS_TRAFFIC",
-    "CAN_MOVE_TO",
     "USES_SERVICE_ACCOUNT",
-    "ASSUMES_ROLE",
-    "HAS_POLICY",
-    "GRANTS_PERMISSION",
-    "CAN_READ",
-    "CAN_WRITE",
-    "CAN_ACCESS_SECRET"
+    "IRSA_LINKED_TO",
+    "HAS_PERMISSION",
+    "CAN_ACCESS",
+    "CAN_ACCESS_SECRET",
+    "CONNECTS_TO"
   ]
 )
-RETURN path;
+RETURN
+  [node IN nodes(path) | node.id] AS nodeIds,
+  [rel IN relationships(path) | type(rel)] AS relationTypes,
+  path;
+
+
+// =====================================================
+// Q6. 전체 그래프 확인
+// =====================================================
+
+MATCH (n)-[r]->(m)
+RETURN n, r, m
+LIMIT 100;
+
+
+// =====================================================
+// Q7. Redis 제거 확인
+// 결과가 없어야 정상
+// =====================================================
+
+MATCH (n)
+WHERE toLower(coalesce(n.id, "")) CONTAINS "redis"
+   OR toLower(coalesce(n.name, "")) CONTAINS "redis"
+   OR toLower(coalesce(n.displayName, "")) CONTAINS "redis"
+RETURN n;
+
+
+// =====================================================
+// Q8. 확정 리소스 id 확인
+// =====================================================
+
+MATCH (n)
+WHERE n.id IN [
+  "hap-dev-01-user",
+  "hap-s3-access-policy",
+  "hap-s3-readonly-role",
+  "hap-irsa-gitea-role",
+  "hap-gitea-role-policy",
+  "gitea-sa",
+  "hap-gitea-db",
+  "hap-customer-data-s3",
+  "hap-prod-vpc",
+  "hap-soc-vpc",
+  "hap-onprem-web",
+  "hap-onprem-db",
+  "hap-onprem-access-key"
+]
+RETURN n.id AS id, labels(n) AS labels, n.name AS name
+ORDER BY id;
+
+
+// =====================================================
+// Q9. 관계 타입 전체 확인
+// =====================================================
+
+MATCH ()-[r]->()
+RETURN type(r) AS relationType, count(r) AS count
+ORDER BY relationType;
+
+
+// =====================================================
+// Q10. 노드 타입 전체 확인
+// =====================================================
+
+MATCH (n)
+RETURN labels(n) AS nodeLabels, count(n) AS count
+ORDER BY toString(nodeLabels);
