@@ -39,10 +39,16 @@ resource "aws_secretsmanager_secret_version" "soc_db" {
 }
 
 ## ---------------------------------------------------------------------------
-## hap-soc-jwt-secret — API JWT signing key. Encrypted with soc-secrets-cmk.
+## hap-soc-jwt-secret — API JWT signing keys. JSON {"access","refresh"} per
+## spec (env JWT_ACCESS_SECRET / JWT_REFRESH_SECRET). Encrypted with soc-secrets-cmk.
 ## ---------------------------------------------------------------------------
 
-resource "random_password" "jwt" {
+resource "random_password" "jwt_access" {
+  length  = 64
+  special = false
+}
+
+resource "random_password" "jwt_refresh" {
   length  = 64
   special = false
 }
@@ -54,8 +60,11 @@ resource "aws_secretsmanager_secret" "jwt" {
 }
 
 resource "aws_secretsmanager_secret_version" "jwt" {
-  secret_id     = aws_secretsmanager_secret.jwt.id
-  secret_string = random_password.jwt.result
+  secret_id = aws_secretsmanager_secret.jwt.id
+  secret_string = jsonencode({
+    access  = random_password.jwt_access.result
+    refresh = random_password.jwt_refresh.result
+  })
 }
 
 ## ---------------------------------------------------------------------------
