@@ -41,3 +41,14 @@ variable "acm_arn" {
   description = "ACM certificate ARN for hap-soc-alb HTTPS listener (issued manually, out of Terraform scope)"
   type        = string
 }
+
+variable "iam_mode" {
+  description = "S1/S4 IAM 시나리오 배포 단계: \"vulnerable\"(발표 시연용 취약 초기 상태) 또는 \"remediated\"(대응 우선순위 적용 후 최소 권한 상태)"
+  type        = string
+  default     = "vulnerable"
+
+  validation {
+    condition     = contains(["vulnerable", "remediated"], var.iam_mode)
+    error_message = "iam_mode must be \"vulnerable\" or \"remediated\"."
+  }
+}

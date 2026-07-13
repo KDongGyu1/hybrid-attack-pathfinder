@@ -185,3 +185,19 @@ output "cloudtrail_arn" {
 output "config_recorder_name" {
   value = module.logging.config_recorder_name
 }
+
+output "dev_01_user_arn" {
+  value = module.iam.dev_01_user_arn
+}
+
+output "dev_01_access_key_id" {
+  value = module.iam.dev_01_access_key_id
+}
+
+output "s3_readonly_role_arn" {
+  value = module.iam.s3_readonly_role_arn
+}
+
+output "gitea_role_policy_arn" {
+  value = module.iam.gitea_role_policy_arn
+}

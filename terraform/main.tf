@@ -92,3 +92,13 @@ module "logging" {
   prod_vpc_id              = module.vpc.prod_vpc_id
   soc_vpc_id               = module.vpc.soc_vpc_id
 }
+
+module "iam" {
+  source = "./modules/iam"
+
+  iam_mode                 = var.iam_mode
+  customer_data_bucket_arn = module.s3.customer_data_bucket_arn
+  irsa_gitea_role_name     = module.eks.irsa_gitea_role_name
+  gitea_db_secret_arn      = module.secrets.gitea_db_secret_arn
+  prod_secrets_cmk_arn     = module.kms.prod_secrets_cmk_arn
+}
