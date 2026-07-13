@@ -25,3 +25,19 @@ variable "analyst_ip_cidr" {
   description = "Analyst IP/CIDR allowed to reach the SOC dashboard ALB (e.g. \"1.2.3.4/32\")"
   type        = string
 }
+
+variable "eks_stage" {
+  description = "Node group sizing (dev = Step1 t3.small x1, presentation = Step2 t3.medium x2 Multi-AZ)"
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "presentation"], var.eks_stage)
+    error_message = "eks_stage must be \"dev\" or \"presentation\"."
+  }
+}
+
+variable "acm_arn" {
+  description = "ACM certificate ARN for hap-soc-alb HTTPS listener (issued manually, out of Terraform scope)"
+  type        = string
+}

@@ -117,3 +117,43 @@ output "customer_data_bucket_id" {
 output "log_bucket_id" {
   value = module.s3.log_bucket_id
 }
+
+output "eks_cluster_name" {
+  value = module.eks.cluster_name
+}
+
+output "eks_cluster_endpoint" {
+  value = module.eks.cluster_endpoint
+}
+
+output "eks_oidc_provider_arn" {
+  value = module.eks.oidc_provider_arn
+}
+
+output "irsa_gitea_role_arn" {
+  value = module.eks.irsa_gitea_role_arn
+}
+
+output "soc_collector_private_ip" {
+  value = module.ec2_soc.collector_private_ip
+}
+
+output "soc_graph_private_ip" {
+  value = module.ec2_soc.graph_private_ip
+}
+
+output "soc_api_private_ip" {
+  value = module.ec2_soc.api_private_ip
+}
+
+output "prod_alb_dns_name" {
+  value = module.alb.prod_alb_dns_name
+}
+
+output "prod_target_group_arn" {
+  value = module.alb.prod_target_group_arn
+}
+
+output "soc_alb_dns_name" {
+  value = module.alb.soc_alb_dns_name
+}

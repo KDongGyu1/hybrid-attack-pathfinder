@@ -43,3 +43,36 @@ module "s3" {
   data_cmk_arn = module.kms.data_cmk_arn
   log_cmk_arn  = module.kms.log_cmk_arn
 }
+
+module "eks" {
+  source = "./modules/eks"
+
+  prod_app_subnet_ids = module.vpc.prod_app_subnet_ids
+  prod_app_sg_id      = module.sg.prod_app_sg_id
+  eks_stage           = var.eks_stage
+}
+
+module "ec2_soc" {
+  source = "./modules/ec2_soc"
+
+  soc_app_subnet_ids  = module.vpc.soc_app_subnet_ids
+  soc_collector_sg_id = module.sg.soc_collector_sg_id
+  soc_server_sg_id    = module.sg.soc_server_sg_id
+  soc_secrets_cmk_arn = module.kms.soc_secrets_cmk_arn
+  soc_db_secret_arn   = module.secrets.soc_db_secret_arn
+  jwt_secret_arn      = module.secrets.jwt_secret_arn
+  neo4j_secret_arn    = module.secrets.neo4j_secret_arn
+}
+
+module "alb" {
+  source = "./modules/alb"
+
+  prod_vpc_id            = module.vpc.prod_vpc_id
+  soc_vpc_id             = module.vpc.soc_vpc_id
+  prod_public_subnet_ids = module.vpc.prod_public_subnet_ids
+  soc_public_subnet_ids  = module.vpc.soc_public_subnet_ids
+  prod_alb_sg_id         = module.sg.prod_alb_sg_id
+  soc_alb_sg_id          = module.sg.soc_alb_sg_id
+  soc_api_instance_id    = module.ec2_soc.api_instance_id
+  acm_arn                = var.acm_arn
+}
