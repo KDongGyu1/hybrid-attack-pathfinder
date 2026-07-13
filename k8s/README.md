@@ -51,9 +51,12 @@ kubectl apply -f https://raw.githubusercontent.com/aws/secrets-store-csi-driver-
 
 ## 3. Gitea 이미지 미러링 (Docker Hub → hap-ecr)
 
+버전 `1.26.4`로 고정(미러링 시점 최신 1.26.x 패치). 아래 Gitea 배포 매니페스트도
+같은 태그를 참조함 — 버전 올릴 때는 두 곳 다 같이 바꿀 것.
+
 ```bash
-./k8s/scripts/mirror-gitea-image.sh 1.22.3
-export GITEA_IMAGE_TAG=1.22.3
+./k8s/scripts/mirror-gitea-image.sh 1.26.4
+export GITEA_IMAGE_TAG=1.26.4
 ```
 
 `hap-ecr`는 IMMUTABLE이라 태그 재사용 불가 — 버전 올릴 때마다 새 태그로 미러링.

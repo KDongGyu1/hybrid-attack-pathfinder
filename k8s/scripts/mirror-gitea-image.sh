@@ -3,11 +3,15 @@
 # hap-ecr is IMMUTABLE (supply-chain security) - tags cannot be overwritten,
 # so 'latest' must not be used; each mirror needs its own version tag.
 #
-# Usage: ./mirror-gitea-image.sh <gitea-version>
-#   e.g. ./mirror-gitea-image.sh 1.22.3
+# Pinned to 1.26.4 (latest 1.26.x patch as of mirroring) - k8s/gitea/deployment.yaml
+# references this same tag. Pass a different version to override.
+#
+# Usage: ./mirror-gitea-image.sh [gitea-version]
+#   e.g. ./mirror-gitea-image.sh        # uses the pinned default (1.26.4)
+#        ./mirror-gitea-image.sh 1.26.5 # override
 set -euo pipefail
 
-GITEA_VERSION="${1:?Usage: $0 <gitea-version>, e.g. 1.22.3}"
+GITEA_VERSION="${1:-1.26.4}"
 AWS_REGION="ap-northeast-2"
 
 ECR_REPO_URL="$(terraform -chdir="$(dirname "$0")/../../terraform" output -raw ecr_repository_url)"
