@@ -7,11 +7,14 @@
 
 // =====================================================
 // Q1. S3: On-Prem WordPress → IAM Access Key → S3
-// 하이브리드 핵심 경로
 // =====================================================
 
-MATCH path = (start {id: "hap-onprem-web"})-[r*1..8]->(target {id: "hap-customer-data-s3"})
-WHERE ALL(rel IN relationships(path)
+MATCH path =
+  (start {id: "hap-onprem-web"})
+  -[r*1..8]->
+  (target {id: "hap-customer-data-s3"})
+WHERE ALL(
+  rel IN relationships(path)
   WHERE type(rel) IN [
     "CONNECTS_TO",
     "HAS_ACCESS_KEY",
@@ -27,11 +30,15 @@ RETURN
 
 
 // =====================================================
-// Q2. S1: IAM Access Key → IAM User → IAM Policy → S3
+// Q2. S1: IAM Access Key → IAM User → S3
 // =====================================================
 
-MATCH path = (start {id: "hap-onprem-access-key"})-[r*1..8]->(target {id: "hap-customer-data-s3"})
-WHERE ALL(rel IN relationships(path)
+MATCH path =
+  (start {id: "hap-onprem-access-key"})
+  -[r*1..8]->
+  (target {id: "hap-customer-data-s3"})
+WHERE ALL(
+  rel IN relationships(path)
   WHERE type(rel) IN [
     "AUTHENTICATES_AS",
     "HAS_PERMISSION",
@@ -45,11 +52,15 @@ RETURN
 
 
 // =====================================================
-// Q3. S4: Internet → ALB → Pod → ServiceAccount → IRSA Role → S3
+// Q3. S4: Internet → ALB → Pod → IRSA → S3
 // =====================================================
 
-MATCH path = (start {id: "internet"})-[r*1..8]->(target {id: "hap-customer-data-s3"})
-WHERE ALL(rel IN relationships(path)
+MATCH path =
+  (start {id: "internet"})
+  -[r*1..8]->
+  (target {id: "hap-customer-data-s3"})
+WHERE ALL(
+  rel IN relationships(path)
   WHERE type(rel) IN [
     "EXPOSED_TO_INTERNET",
     "ALLOWS_TRAFFIC",
@@ -70,8 +81,12 @@ RETURN
 // Q4. Internet → ALB → Pod → RDS
 // =====================================================
 
-MATCH path = (start {id: "internet"})-[r*1..8]->(target {id: "hap-gitea-db"})
-WHERE ALL(rel IN relationships(path)
+MATCH path =
+  (start {id: "internet"})
+  -[r*1..8]->
+  (target {id: "hap-gitea-db"})
+WHERE ALL(
+  rel IN relationships(path)
   WHERE type(rel) IN [
     "EXPOSED_TO_INTERNET",
     "ALLOWS_TRAFFIC",
@@ -86,11 +101,15 @@ RETURN
 
 
 // =====================================================
-// Q5. Pod → ServiceAccount → IRSA Role → SecretsManager → RDS
+// Q5. Pod → IRSA → Secrets Manager → RDS
 // =====================================================
 
-MATCH path = (start {id: "pod-gitea-app"})-[r*1..8]->(target {id: "hap-gitea-db"})
-WHERE ALL(rel IN relationships(path)
+MATCH path =
+  (start {id: "pod-gitea-app"})
+  -[r*1..8]->
+  (target {id: "hap-gitea-db"})
+WHERE ALL(
+  rel IN relationships(path)
   WHERE type(rel) IN [
     "USES_SERVICE_ACCOUNT",
     "IRSA_LINKED_TO",
@@ -107,17 +126,17 @@ RETURN
 
 
 // =====================================================
-// Q6. 전체 그래프 확인
+// Q6. 전체 그래프
 // =====================================================
 
 MATCH (n)-[r]->(m)
 RETURN n, r, m
-LIMIT 100;
+LIMIT 150;
 
 
 // =====================================================
 // Q7. Redis 제거 확인
-// 결과가 없어야 정상
+// 결과 없음이 정상
 // =====================================================
 
 MATCH (n)
@@ -128,7 +147,7 @@ RETURN n;
 
 
 // =====================================================
-// Q8. 확정 리소스 id 확인
+// Q8. 확정 리소스 ID 확인
 // =====================================================
 
 MATCH (n)
@@ -141,29 +160,98 @@ WHERE n.id IN [
   "gitea-sa",
   "hap-gitea-db",
   "hap-customer-data-s3",
+  "hap-soc-log-s3",
+  "hap-soc-alb-log-s3",
   "hap-prod-vpc",
   "hap-soc-vpc",
   "hap-onprem-web",
   "hap-onprem-db",
   "hap-onprem-access-key"
 ]
-RETURN n.id AS id, labels(n) AS labels, n.name AS name
+RETURN
+  n.id AS id,
+  labels(n) AS labels,
+  n.name AS name
 ORDER BY id;
 
 
 // =====================================================
-// Q9. 관계 타입 전체 확인
+// Q9. 관계 타입 확인
 // =====================================================
 
 MATCH ()-[r]->()
-RETURN type(r) AS relationType, count(r) AS count
+RETURN
+  type(r) AS relationType,
+  count(r) AS count
 ORDER BY relationType;
 
 
 // =====================================================
-// Q10. 노드 타입 전체 확인
+// Q10. 노드 타입 확인
 // =====================================================
 
 MATCH (n)
-RETURN labels(n) AS nodeLabels, count(n) AS count
+RETURN
+  labels(n) AS nodeLabels,
+  count(n) AS count
 ORDER BY toString(nodeLabels);
+
+
+// =====================================================
+// Q11. S3 버킷 분리 확인
+// =====================================================
+
+MATCH (bucket:S3Bucket)
+WHERE bucket.id IN [
+  "hap-customer-data-s3",
+  "hap-soc-log-s3",
+  "hap-soc-alb-log-s3"
+]
+RETURN
+  bucket.id AS bucketId,
+  bucket.purpose AS purpose,
+  bucket.encryption AS encryption,
+  bucket.objectLock AS objectLock,
+  bucket.prodPrefix AS prodPrefix,
+  bucket.socPrefix AS socPrefix
+ORDER BY bucketId;
+
+
+// =====================================================
+// Q12. Prod ALB 로그 저장 경로 확인
+// =====================================================
+
+MATCH path =
+  (alb:ALB {id: "hap-public-web-alb"})
+  -[:LOGS_TO]->
+  (bucket:S3Bucket {id: "hap-soc-alb-log-s3"})
+RETURN path;
+
+
+// =====================================================
+// Q13. KMS 연결 확인
+// hap-soc-log-s3만 나와야 정상
+// =====================================================
+
+MATCH
+  (bucket:S3Bucket)-[:ENCRYPTED_BY]->(kms:KMSKey)
+WHERE bucket.id IN [
+  "hap-soc-log-s3",
+  "hap-soc-alb-log-s3"
+]
+RETURN
+  bucket.id AS bucketId,
+  bucket.encryption AS encryption,
+  kms.id AS kmsId;
+
+
+// =====================================================
+// Q14. ALB 로그 버킷이 KMS에 연결되지 않았는지 확인
+// 결과 없음이 정상
+// =====================================================
+
+MATCH
+  (bucket:S3Bucket {id: "hap-soc-alb-log-s3"})
+  -[:ENCRYPTED_BY]->
+  (kms:KMSKey)
+RETURN bucket, kms;

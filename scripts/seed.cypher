@@ -3,17 +3,16 @@
 // Neo4j Seed Data
 // Infra Spec v2 aligned
 //
-// 주요 반영 사항
+// 반영 사항
 // 1. Redis 제거
-// 2. hap-* 확정 리소스명 기준으로 노드 id 통일
-// 3. On-Prem WordPress → IAM Access Key → AWS S3 경로 추가
-// 4. VPN 미사용: 온프렘 → AWS 이동은 IAM Access Key 기반
+// 2. hap-* 확정 리소스명으로 통일
+// 3. On-Prem → IAM Access Key → AWS S3 경로
+// 4. ALB Access Log 전용 S3 버킷 분리
 // =====================================================
 
 
 // =====================================================
 // Reset Graph
-// 로컬 검증용: 기존 그래프 전체 삭제
 // =====================================================
 
 MATCH (n)
@@ -68,6 +67,7 @@ MERGE (alb:ALB {id: "hap-public-web-alb"})
 SET alb.name = "hap-public-web-alb",
     alb.displayName = "Public Web ALB",
     alb.type = "ALB",
+    alb.environment = "prod",
     alb.exposed = true,
     alb.provider = "AWS";
 
@@ -114,7 +114,8 @@ SET s3ReadonlyRole.name = "hap-s3-readonly-role",
     s3ReadonlyRole.displayName = "hap-s3-readonly-role",
     s3ReadonlyRole.type = "IAMRole",
     s3ReadonlyRole.provider = "AWS",
-    s3ReadonlyRole.note = "S1 path B assume role. Permission policy node will be added after final confirmation.";
+    s3ReadonlyRole.note =
+      "S1 path B assume role. Permission policy node pending confirmation.";
 
 MERGE (irsaRole:IAMRole {id: "hap-irsa-gitea-role"})
 SET irsaRole.name = "hap-irsa-gitea-role",
@@ -142,13 +143,38 @@ SET onpremAccessKey.name = "hap-onprem-access-key",
 // AWS Data / Application Service Nodes
 // =====================================================
 
-MERGE (s3:S3Bucket {id: "hap-customer-data-s3"})
-SET s3.name = "hap-customer-data-s3",
-    s3.displayName = "hap-customer-data-s3",
-    s3.type = "S3Bucket",
-    s3.provider = "AWS",
-    s3.sensitive = true,
-    s3.dataType = "customer-data";
+MERGE (customerS3:S3Bucket {id: "hap-customer-data-s3"})
+SET customerS3.name = "hap-customer-data-s3",
+    customerS3.displayName = "hap-customer-data-s3",
+    customerS3.type = "S3Bucket",
+    customerS3.provider = "AWS",
+    customerS3.environment = "prod",
+    customerS3.purpose = "customer-data",
+    customerS3.sensitive = true,
+    customerS3.dataType = "customer-data";
+
+MERGE (socLogS3:S3Bucket {id: "hap-soc-log-s3"})
+SET socLogS3.name = "hap-soc-log-s3",
+    socLogS3.displayName = "SOC Audit and Collection Log Bucket",
+    socLogS3.type = "S3Bucket",
+    socLogS3.provider = "AWS",
+    socLogS3.environment = "soc",
+    socLogS3.purpose = "audit-and-collection-logs",
+    socLogS3.encryption = "SSE-KMS",
+    socLogS3.objectLock = true,
+    socLogS3.sensitive = true;
+
+MERGE (socAlbLogS3:S3Bucket {id: "hap-soc-alb-log-s3"})
+SET socAlbLogS3.name = "hap-soc-alb-log-s3",
+    socAlbLogS3.displayName = "SOC ALB Access Log Bucket",
+    socAlbLogS3.type = "S3Bucket",
+    socAlbLogS3.provider = "AWS",
+    socAlbLogS3.environment = "soc",
+    socAlbLogS3.purpose = "alb-access-logs",
+    socAlbLogS3.encryption = "SSE-S3",
+    socAlbLogS3.objectLock = false,
+    socAlbLogS3.prodPrefix = "prod-alb/",
+    socAlbLogS3.socPrefix = "soc-alb/";
 
 MERGE (rds:RDS {id: "hap-gitea-db"})
 SET rds.name = "hap-gitea-db",
@@ -217,7 +243,8 @@ SET findingAlbPublic.name = "finding-alb-public-exposure",
 
 MERGE (findingOnpremKey:Finding {id: "finding-onprem-access-key-exposure"})
 SET findingOnpremKey.name = "finding-onprem-access-key-exposure",
-    findingOnpremKey.displayName = "IAM Access Key stored on On-Prem WordPress server",
+    findingOnpremKey.displayName =
+      "IAM Access Key stored on On-Prem WordPress server",
     findingOnpremKey.type = "Finding",
     findingOnpremKey.severity = "HIGH";
 
@@ -232,84 +259,158 @@ SET findingS3Permission.name = "finding-s3-excessive-permission",
 // Containment Relationships
 // =====================================================
 
-MATCH (prodVpc:VPC {id: "hap-prod-vpc"}), (publicSubnet:Subnet {id: "hap-prod-public-subnet"})
+MATCH
+  (prodVpc:VPC {id: "hap-prod-vpc"}),
+  (publicSubnet:Subnet {id: "hap-prod-public-subnet"})
 MERGE (prodVpc)-[:CONTAINS]->(publicSubnet);
 
-MATCH (prodVpc:VPC {id: "hap-prod-vpc"}), (appSubnet:Subnet {id: "hap-prod-app-subnet"})
+MATCH
+  (prodVpc:VPC {id: "hap-prod-vpc"}),
+  (appSubnet:Subnet {id: "hap-prod-app-subnet"})
 MERGE (prodVpc)-[:CONTAINS]->(appSubnet);
 
-MATCH (prodVpc:VPC {id: "hap-prod-vpc"}), (dbSubnet:Subnet {id: "hap-prod-db-subnet"})
+MATCH
+  (prodVpc:VPC {id: "hap-prod-vpc"}),
+  (dbSubnet:Subnet {id: "hap-prod-db-subnet"})
 MERGE (prodVpc)-[:CONTAINS]->(dbSubnet);
 
-MATCH (publicSubnet:Subnet {id: "hap-prod-public-subnet"}), (alb:ALB {id: "hap-public-web-alb"})
+MATCH
+  (publicSubnet:Subnet {id: "hap-prod-public-subnet"}),
+  (alb:ALB {id: "hap-public-web-alb"})
 MERGE (publicSubnet)-[:CONTAINS]->(alb);
 
-MATCH (appSubnet:Subnet {id: "hap-prod-app-subnet"}), (eks:EKSCluster {id: "hap-eks-cluster"})
+MATCH
+  (appSubnet:Subnet {id: "hap-prod-app-subnet"}),
+  (eks:EKSCluster {id: "hap-eks-cluster"})
 MERGE (appSubnet)-[:CONTAINS]->(eks);
 
-MATCH (dbSubnet:Subnet {id: "hap-prod-db-subnet"}), (rds:RDS {id: "hap-gitea-db"})
+MATCH
+  (dbSubnet:Subnet {id: "hap-prod-db-subnet"}),
+  (rds:RDS {id: "hap-gitea-db"})
 MERGE (dbSubnet)-[:CONTAINS]->(rds);
+
+MATCH
+  (socVpc:VPC {id: "hap-soc-vpc"}),
+  (socLogS3:S3Bucket {id: "hap-soc-log-s3"})
+MERGE (socVpc)-[:CONTAINS]->(socLogS3);
+
+MATCH
+  (socVpc:VPC {id: "hap-soc-vpc"}),
+  (socAlbLogS3:S3Bucket {id: "hap-soc-alb-log-s3"})
+MERGE (socVpc)-[:CONTAINS]->(socAlbLogS3);
 
 
 // =====================================================
 // Internet → ALB → Pod Path
 // =====================================================
 
-MATCH (internet:Internet {id: "internet"}), (alb:ALB {id: "hap-public-web-alb"})
+MATCH
+  (internet:Internet {id: "internet"}),
+  (alb:ALB {id: "hap-public-web-alb"})
 MERGE (internet)-[:EXPOSED_TO_INTERNET {
   description: "Public Web ALB is reachable from the Internet"
 }]->(alb);
 
-MATCH (alb:ALB {id: "hap-public-web-alb"}), (pod:Pod {id: "pod-gitea-app"})
+MATCH
+  (alb:ALB {id: "hap-public-web-alb"}),
+  (pod:Pod {id: "pod-gitea-app"})
 MERGE (alb)-[:ALLOWS_TRAFFIC {
   protocol: "HTTP/HTTPS",
   description: "ALB forwards web traffic to Gitea application pod"
 }]->(pod);
 
-MATCH (alb:ALB {id: "hap-public-web-alb"}), (pod:Pod {id: "pod-gitea-app"})
+MATCH
+  (alb:ALB {id: "hap-public-web-alb"}),
+  (pod:Pod {id: "pod-gitea-app"})
 MERGE (alb)-[:CAN_MOVE_TO {
-  description: "Attacker can move from public entry point to application workload"
+  description:
+    "Attacker can move from public entry point to application workload"
 }]->(pod);
 
 
 // =====================================================
-// EKS / IRSA / S3 Path
-// S4: ServiceAccount → IRSA Role → IAM Policy → S3
+// ALB Access Log Bucket Separation
+// Prod ALB → hap-soc-alb-log-s3 / prod-alb/
+// SOC ALB 관계는 실제 SOC ALB id 확정 후 추가
 // =====================================================
 
-MATCH (pod:Pod {id: "pod-gitea-app"}), (eks:EKSCluster {id: "hap-eks-cluster"})
+MATCH
+  (alb:ALB {id: "hap-public-web-alb"}),
+  (socAlbLogS3:S3Bucket {id: "hap-soc-alb-log-s3"})
+MERGE (alb)-[:LOGS_TO {
+  logType: "ALB_ACCESS_LOG",
+  prefix: "prod-alb/",
+  encryption: "SSE-S3",
+  description:
+    "Prod ALB access logs are stored in the dedicated ALB log bucket"
+}]->(socAlbLogS3);
+
+
+// =====================================================
+// Audit Log Bucket Encryption
+// hap-soc-log-s3만 KMS 연결
+// hap-soc-alb-log-s3는 SSE-S3이므로 KMS 연결 금지
+// =====================================================
+
+MATCH
+  (socLogS3:S3Bucket {id: "hap-soc-log-s3"}),
+  (kms:KMSKey {id: "hap-kms-key"})
+MERGE (socLogS3)-[:ENCRYPTED_BY {
+  encryption: "SSE-KMS",
+  description:
+    "Audit and collection log bucket is encrypted with KMS"
+}]->(kms);
+
+
+// =====================================================
+// EKS / IRSA / S3 Path
+// =====================================================
+
+MATCH
+  (pod:Pod {id: "pod-gitea-app"}),
+  (eks:EKSCluster {id: "hap-eks-cluster"})
 MERGE (pod)-[:RUNS_ON {
   description: "Gitea application pod runs on EKS cluster"
 }]->(eks);
 
-MATCH (pod:Pod {id: "pod-gitea-app"}), (sa:ServiceAccount {id: "gitea-sa"})
+MATCH
+  (pod:Pod {id: "pod-gitea-app"}),
+  (sa:ServiceAccount {id: "gitea-sa"})
 MERGE (pod)-[:USES_SERVICE_ACCOUNT {
   description: "Gitea pod uses Kubernetes ServiceAccount"
 }]->(sa);
 
-MATCH (sa:ServiceAccount {id: "gitea-sa"}), (irsaRole:IAMRole {id: "hap-irsa-gitea-role"})
+MATCH
+  (sa:ServiceAccount {id: "gitea-sa"}),
+  (irsaRole:IAMRole {id: "hap-irsa-gitea-role"})
 MERGE (sa)-[:IRSA_LINKED_TO {
   description: "ServiceAccount is linked to IAM Role through IRSA"
 }]->(irsaRole);
 
-MATCH (irsaRole:IAMRole {id: "hap-irsa-gitea-role"}), (giteaRolePolicy:IAMPolicy {id: "hap-gitea-role-policy"})
+MATCH
+  (irsaRole:IAMRole {id: "hap-irsa-gitea-role"}),
+  (giteaRolePolicy:IAMPolicy {id: "hap-gitea-role-policy"})
 MERGE (irsaRole)-[:HAS_PERMISSION {
   description: "IRSA Role has IAM Policy"
 }]->(giteaRolePolicy);
 
-MATCH (giteaRolePolicy:IAMPolicy {id: "hap-gitea-role-policy"}), (s3:S3Bucket {id: "hap-customer-data-s3"})
+MATCH
+  (giteaRolePolicy:IAMPolicy {id: "hap-gitea-role-policy"}),
+  (customerS3:S3Bucket {id: "hap-customer-data-s3"})
 MERGE (giteaRolePolicy)-[:CAN_ACCESS {
   action: "s3:GetObject",
   permissionLevel: "READ",
   description: "IRSA policy allows access to customer data S3 bucket"
-}]->(s3);
+}]->(customerS3);
 
 
 // =====================================================
 // Pod → RDS Path
 // =====================================================
 
-MATCH (pod:Pod {id: "pod-gitea-app"}), (rds:RDS {id: "hap-gitea-db"})
+MATCH
+  (pod:Pod {id: "pod-gitea-app"}),
+  (rds:RDS {id: "hap-gitea-db"})
 MERGE (pod)-[:CONNECTS_TO {
   protocol: "PostgreSQL",
   port: 5432,
@@ -321,18 +422,24 @@ MERGE (pod)-[:CONNECTS_TO {
 // Pod → Secrets Manager → RDS Path
 // =====================================================
 
-MATCH (giteaRolePolicy:IAMPolicy {id: "hap-gitea-role-policy"}), (secret:SecretsManager {id: "hap-gitea-db-secret"})
+MATCH
+  (giteaRolePolicy:IAMPolicy {id: "hap-gitea-role-policy"}),
+  (secret:SecretsManager {id: "hap-gitea-db-secret"})
 MERGE (giteaRolePolicy)-[:CAN_ACCESS_SECRET {
   action: "secretsmanager:GetSecretValue",
   description: "Policy allows reading DB credential from Secrets Manager"
 }]->(secret);
 
-MATCH (secret:SecretsManager {id: "hap-gitea-db-secret"}), (rds:RDS {id: "hap-gitea-db"})
+MATCH
+  (secret:SecretsManager {id: "hap-gitea-db-secret"}),
+  (rds:RDS {id: "hap-gitea-db"})
 MERGE (secret)-[:CONNECTS_TO {
   description: "Secret contains credential for RDS PostgreSQL"
 }]->(rds);
 
-MATCH (secret:SecretsManager {id: "hap-gitea-db-secret"}), (kms:KMSKey {id: "hap-kms-key"})
+MATCH
+  (secret:SecretsManager {id: "hap-gitea-db-secret"}),
+  (kms:KMSKey {id: "hap-kms-key"})
 MERGE (secret)-[:ENCRYPTED_BY {
   description: "Secret is encrypted by KMS key"
 }]->(kms);
@@ -342,62 +449,77 @@ MERGE (secret)-[:ENCRYPTED_BY {
 // ECR / CloudWatch Relationships
 // =====================================================
 
-MATCH (pod:Pod {id: "pod-gitea-app"}), (ecr:ECRRepository {id: "hap-gitea-ecr"})
+MATCH
+  (pod:Pod {id: "pod-gitea-app"}),
+  (ecr:ECRRepository {id: "hap-gitea-ecr"})
 MERGE (pod)-[:PULLS_IMAGE_FROM {
   description: "Gitea pod pulls container image from ECR"
 }]->(ecr);
 
-MATCH (pod:Pod {id: "pod-gitea-app"}), (cw:CloudWatchLog {id: "hap-gitea-cloudwatch-log"})
+MATCH
+  (pod:Pod {id: "pod-gitea-app"}),
+  (cw:CloudWatchLog {id: "hap-gitea-cloudwatch-log"})
 MERGE (pod)-[:LOGS_TO {
-  description: "Gitea pod sends logs to CloudWatch"
+  logType: "APPLICATION_LOG",
+  description: "Gitea pod sends application logs to CloudWatch"
 }]->(cw);
 
 
 // =====================================================
 // On-Prem → AWS Hybrid Attack Path
-// S3: WordPress 침해 → IAM Access Key 탈취 → S3 접근
-// VPN 미사용. IAM Access Key 기반 경계 이동.
 // =====================================================
 
-MATCH (onpremWeb:OnPremWeb {id: "hap-onprem-web"}), (onpremDb:OnPremDB {id: "hap-onprem-db"})
+MATCH
+  (onpremWeb:OnPremWeb {id: "hap-onprem-web"}),
+  (onpremDb:OnPremDB {id: "hap-onprem-db"})
 MERGE (onpremWeb)-[:CONNECTS_TO {
   protocol: "MySQL",
   port: 3306,
   description: "WordPress server connects to on-prem MySQL database"
 }]->(onpremDb);
 
-MATCH (onpremWeb:OnPremWeb {id: "hap-onprem-web"}), (onpremAccessKey:IAMAccessKey {id: "hap-onprem-access-key"})
+MATCH
+  (onpremWeb:OnPremWeb {id: "hap-onprem-web"}),
+  (onpremAccessKey:IAMAccessKey {id: "hap-onprem-access-key"})
 MERGE (onpremWeb)-[:HAS_ACCESS_KEY {
-  description: "Compromised WordPress server contains AWS IAM Access Key"
+  description:
+    "Compromised WordPress server contains AWS IAM Access Key"
 }]->(onpremAccessKey);
 
-MATCH (onpremAccessKey:IAMAccessKey {id: "hap-onprem-access-key"}), (devUser:IAMUser {id: "hap-dev-01-user"})
+MATCH
+  (onpremAccessKey:IAMAccessKey {id: "hap-onprem-access-key"}),
+  (devUser:IAMUser {id: "hap-dev-01-user"})
 MERGE (onpremAccessKey)-[:AUTHENTICATES_AS {
   description: "Stolen IAM Access Key authenticates as IAM User"
 }]->(devUser);
 
-MATCH (devUser:IAMUser {id: "hap-dev-01-user"}), (s3AccessPolicy:IAMPolicy {id: "hap-s3-access-policy"})
+MATCH
+  (devUser:IAMUser {id: "hap-dev-01-user"}),
+  (s3AccessPolicy:IAMPolicy {id: "hap-s3-access-policy"})
 MERGE (devUser)-[:HAS_PERMISSION {
   description: "IAM User has S3 access policy"
 }]->(s3AccessPolicy);
 
-MATCH (s3AccessPolicy:IAMPolicy {id: "hap-s3-access-policy"}), (s3:S3Bucket {id: "hap-customer-data-s3"})
+MATCH
+  (s3AccessPolicy:IAMPolicy {id: "hap-s3-access-policy"}),
+  (customerS3:S3Bucket {id: "hap-customer-data-s3"})
 MERGE (s3AccessPolicy)-[:CAN_ACCESS {
   action: "s3:GetObject",
   permissionLevel: "READ",
   description: "Policy allows read access to customer data S3 bucket"
-}]->(s3);
+}]->(customerS3);
 
 
 // =====================================================
 // S1 Path B Placeholder
-// IAM User → S3 Readonly Role
-// 권한 정책 노드는 민아님 확정 후 별도 추가 예정
 // =====================================================
 
-MATCH (devUser:IAMUser {id: "hap-dev-01-user"}), (s3ReadonlyRole:IAMRole {id: "hap-s3-readonly-role"})
+MATCH
+  (devUser:IAMUser {id: "hap-dev-01-user"}),
+  (s3ReadonlyRole:IAMRole {id: "hap-s3-readonly-role"})
 MERGE (devUser)-[:ASSUMES_ROLE {
-  description: "IAM User can assume S3 readonly role. Permission policy is pending confirmation."
+  description:
+    "IAM User can assume S3 readonly role. Policy pending confirmation."
 }]->(s3ReadonlyRole);
 
 
@@ -405,13 +527,19 @@ MERGE (devUser)-[:ASSUMES_ROLE {
 // Finding Relationships
 // =====================================================
 
-MATCH (alb:ALB {id: "hap-public-web-alb"}), (finding:Finding {id: "finding-alb-public-exposure"})
+MATCH
+  (alb:ALB {id: "hap-public-web-alb"}),
+  (finding:Finding {id: "finding-alb-public-exposure"})
 MERGE (alb)-[:HAS_FINDING]->(finding);
 
-MATCH (onpremWeb:OnPremWeb {id: "hap-onprem-web"}), (finding:Finding {id: "finding-onprem-access-key-exposure"})
+MATCH
+  (onpremWeb:OnPremWeb {id: "hap-onprem-web"}),
+  (finding:Finding {id: "finding-onprem-access-key-exposure"})
 MERGE (onpremWeb)-[:HAS_FINDING]->(finding);
 
-MATCH (s3AccessPolicy:IAMPolicy {id: "hap-s3-access-policy"}), (finding:Finding {id: "finding-s3-excessive-permission"})
+MATCH
+  (s3AccessPolicy:IAMPolicy {id: "hap-s3-access-policy"}),
+  (finding:Finding {id: "finding-s3-excessive-permission"})
 MERGE (s3AccessPolicy)-[:HAS_FINDING]->(finding);
 
 
