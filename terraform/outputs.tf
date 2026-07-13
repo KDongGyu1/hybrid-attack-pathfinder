@@ -101,3 +101,19 @@ output "jwt_secret_arn" {
 output "neo4j_secret_arn" {
   value = module.secrets.neo4j_secret_arn
 }
+
+output "gitea_db_endpoint" {
+  value = module.rds.gitea_db_endpoint
+}
+
+output "soc_auth_db_endpoint" {
+  value = module.rds.soc_auth_db_endpoint
+}
+
+output "customer_data_bucket_id" {
+  value = module.s3.customer_data_bucket_id
+}
+
+output "log_bucket_id" {
+  value = module.s3.log_bucket_id
+}
