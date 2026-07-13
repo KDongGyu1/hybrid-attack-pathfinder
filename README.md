@@ -86,14 +86,21 @@ DB 서브넷은 외부 라우팅 없이 로컬만 유지합니다.
 
 - [x] **1단계** — 기본 구조(`providers.tf`/`versions.tf`/`variables.tf`) + 네트워크
       (`modules/vpc`: VPC 2개, 서브넷 12개, RT, IGW, NAT, VPC Peering)
-- [ ] 2단계 — Security Group
-- [ ] 3단계 — KMS(CMK 6개) + Secrets Manager
-- [ ] 4단계 — RDS 2개, S3 2개(log-s3 Object Lock/Lifecycle)
-- [ ] 5단계 — EKS(클러스터+노드그룹+IRSA), EC2 SOC 3대, ALB 2개
-- [ ] 6단계 — ECR
-- [ ] 7단계 — 로깅(CloudTrail, VPC Flow Logs, Config, CloudWatch)
-- [ ] 8단계 — IAM(시나리오용, 취약→교정 2단계 배포)
+- [x] **2단계** — Security Group (`modules/sg`)
+- [x] **3단계** — KMS(CMK 6개) + Secrets Manager (`modules/kms`, `modules/secrets`)
+- [x] **4단계** — RDS 2개, S3 2개 (`modules/rds`, `modules/s3`)
+- [x] **5단계** — EKS(클러스터+노드그룹+IRSA), EC2 SOC 3대, ALB 2개
+      (`modules/eks`, `modules/ec2_soc`, `modules/alb`)
+- [x] **6단계** — ECR (`modules/ecr`)
+- [x] **7단계** — 로깅(CloudTrail, VPC Flow Logs, Config, CloudWatch) (`modules/logging`)
+- [ ] 8단계 — IAM(시나리오용, 취약→교정 2단계 배포) — 담당자 확인 중
 
 Terraform 스코프에서 제외되는 항목: 온프레미스(Vagrant/VirtualBox 별도 구성),
 ACM 인증서·도메인(수동 발급, ARN만 변수로 연결), VPN/VGW·Bastion·Redis·ACM
 Private CA(폐지/제외).
+
+## 앱 배포 (Gitea on EKS)
+
+Terraform 스코프 밖(K8s 애드온·이미지 미러링·앱 배포)이라 `k8s/`에 별도로 둡니다.
+AWS Load Balancer Controller·Secrets Store CSI Driver 설치, ECR 미러링, Gitea
+매니페스트 적용까지 순서대로 정리된 안내는 [k8s/README.md](k8s/README.md) 참고.

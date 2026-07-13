@@ -33,3 +33,7 @@ output "irsa_gitea_role_arn" {
 output "irsa_gitea_role_name" {
   value = aws_iam_role.irsa_gitea.name
 }
+
+output "irsa_lb_controller_role_arn" {
+  value = aws_iam_role.irsa_lb_controller.arn
+}

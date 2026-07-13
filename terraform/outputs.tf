@@ -114,6 +114,10 @@ output "customer_data_bucket_id" {
   value = module.s3.customer_data_bucket_id
 }
 
+output "customer_data_bucket_arn" {
+  value = module.s3.customer_data_bucket_arn
+}
+
 output "log_bucket_id" {
   value = module.s3.log_bucket_id
 }
@@ -132,6 +136,14 @@ output "eks_oidc_provider_arn" {
 
 output "irsa_gitea_role_arn" {
   value = module.eks.irsa_gitea_role_arn
+}
+
+output "irsa_gitea_role_name" {
+  value = module.eks.irsa_gitea_role_name
+}
+
+output "irsa_lb_controller_role_arn" {
+  value = module.eks.irsa_lb_controller_role_arn
 }
 
 output "soc_collector_private_ip" {
@@ -160,6 +172,10 @@ output "soc_alb_dns_name" {
 
 output "ecr_repository_url" {
   value = module.ecr.repository_url
+}
+
+output "ecr_repository_arn" {
+  value = module.ecr.repository_arn
 }
 
 output "cloudtrail_arn" {

@@ -220,3 +220,53 @@ resource "aws_iam_role" "irsa_gitea" {
   assume_role_policy = data.aws_iam_policy_document.irsa_gitea_trust.json
   tags               = { Name = "hap-irsa-gitea-role" }
 }
+
+## ---------------------------------------------------------------------------
+## hap-irsa-lb-controller-role — IRSA for the AWS Load Balancer Controller
+## add-on (ServiceAccount aws-load-balancer-controller, namespace kube-system).
+## Needed so hap-prod-alb's target group can actually be bound to Gitea Pods
+## (TargetGroupBinding), and is a cluster add-on, not part of the S1/S4
+## vulnerable/remediated toggle, so full upstream permissions are granted here.
+## ---------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "irsa_lb_controller_trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:aws-load-balancer-controller"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "irsa_lb_controller" {
+  name               = "hap-irsa-lb-controller-role"
+  assume_role_policy = data.aws_iam_policy_document.irsa_lb_controller_trust.json
+  tags               = { Name = "hap-irsa-lb-controller-role" }
+}
+
+# Official upstream policy: kubernetes-sigs/aws-load-balancer-controller
+resource "aws_iam_policy" "lb_controller" {
+  name   = "hap-lb-controller-policy"
+  policy = file("${path.module}/policies/lb_controller_iam_policy.json")
+  tags   = { Name = "hap-lb-controller-policy" }
+}
+
+resource "aws_iam_role_policy_attachment" "lb_controller" {
+  role       = aws_iam_role.irsa_lb_controller.name
+  policy_arn = aws_iam_policy.lb_controller.arn
+}
