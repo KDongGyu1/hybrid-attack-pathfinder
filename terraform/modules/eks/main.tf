@@ -222,7 +222,7 @@ resource "aws_iam_role" "irsa_gitea" {
 }
 
 ## ---------------------------------------------------------------------------
-## hap-irsa-lb-controller-role — IRSA for the AWS Load Balancer Controller
+## hap-alb-controller-role — IRSA for the AWS Load Balancer Controller
 ## add-on (ServiceAccount aws-load-balancer-controller, namespace kube-system).
 ## Needed so hap-prod-alb's target group can actually be bound to Gitea Pods
 ## (TargetGroupBinding), and is a cluster add-on, not part of the S1/S4
@@ -254,16 +254,16 @@ data "aws_iam_policy_document" "irsa_lb_controller_trust" {
 }
 
 resource "aws_iam_role" "irsa_lb_controller" {
-  name               = "hap-irsa-lb-controller-role"
+  name               = "hap-alb-controller-role"
   assume_role_policy = data.aws_iam_policy_document.irsa_lb_controller_trust.json
-  tags               = { Name = "hap-irsa-lb-controller-role" }
+  tags               = { Name = "hap-alb-controller-role" }
 }
 
 # Official upstream policy: kubernetes-sigs/aws-load-balancer-controller
 resource "aws_iam_policy" "lb_controller" {
-  name   = "hap-lb-controller-policy"
+  name   = "hap-alb-controller-policy"
   policy = file("${path.module}/policies/lb_controller_iam_policy.json")
-  tags   = { Name = "hap-lb-controller-policy" }
+  tags   = { Name = "hap-alb-controller-policy" }
 }
 
 resource "aws_iam_role_policy_attachment" "lb_controller" {
