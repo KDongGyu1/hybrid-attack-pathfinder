@@ -76,3 +76,7 @@ module "alb" {
   soc_api_instance_id    = module.ec2_soc.api_instance_id
   acm_arn                = var.acm_arn
 }
+
+module "ecr" {
+  source = "./modules/ecr"
+}
