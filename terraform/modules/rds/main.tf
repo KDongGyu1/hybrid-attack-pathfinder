@@ -15,6 +15,23 @@ resource "aws_db_subnet_group" "soc" {
 }
 
 ## ---------------------------------------------------------------------------
+## CloudWatch Log Groups — pre-created so retention_in_days applies (RDS
+## auto-creates these with no expiry otherwise when log export is enabled).
+## ---------------------------------------------------------------------------
+
+resource "aws_cloudwatch_log_group" "gitea" {
+  name              = "/aws/rds/instance/hap-gitea-db/postgresql"
+  retention_in_days = 30
+  tags              = { Name = "hap-gitea-db-logs" }
+}
+
+resource "aws_cloudwatch_log_group" "soc_auth" {
+  name              = "/aws/rds/instance/hap-soc-auth-db/postgresql"
+  retention_in_days = 30
+  tags              = { Name = "hap-soc-auth-db-logs" }
+}
+
+## ---------------------------------------------------------------------------
 ## hap-gitea-db — Prod, Gitea backend (PostgreSQL 16)
 ## ---------------------------------------------------------------------------
 
@@ -41,7 +58,11 @@ resource "aws_db_instance" "gitea" {
   backup_retention_period = 1
   skip_final_snapshot     = true
 
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+
   tags = { Name = "hap-gitea-db" }
+
+  depends_on = [aws_cloudwatch_log_group.gitea]
 }
 
 ## ---------------------------------------------------------------------------
@@ -71,5 +92,9 @@ resource "aws_db_instance" "soc_auth" {
   backup_retention_period = 1
   skip_final_snapshot     = true
 
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+
   tags = { Name = "hap-soc-auth-db" }
+
+  depends_on = [aws_cloudwatch_log_group.soc_auth]
 }

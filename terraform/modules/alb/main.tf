@@ -11,6 +11,12 @@ resource "aws_lb" "prod" {
   security_groups    = [var.prod_alb_sg_id]
   subnets            = var.prod_public_subnet_ids
 
+  access_logs {
+    bucket  = var.alb_log_bucket_id
+    prefix  = "prod-alb"
+    enabled = true
+  }
+
   tags = { Name = "hap-prod-alb" }
 }
 
@@ -52,6 +58,12 @@ resource "aws_lb" "soc" {
   load_balancer_type = "application"
   security_groups    = [var.soc_alb_sg_id]
   subnets            = var.soc_public_subnet_ids
+
+  access_logs {
+    bucket  = var.alb_log_bucket_id
+    prefix  = "soc-alb"
+    enabled = true
+  }
 
   tags = { Name = "hap-soc-alb" }
 }

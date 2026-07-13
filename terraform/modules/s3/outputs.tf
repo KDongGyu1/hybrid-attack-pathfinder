@@ -13,3 +13,11 @@ output "log_bucket_arn" {
 output "log_bucket_id" {
   value = aws_s3_bucket.log.id
 }
+
+output "alb_log_bucket_arn" {
+  value = aws_s3_bucket.alb_log.arn
+}
+
+output "alb_log_bucket_id" {
+  value = aws_s3_bucket.alb_log.id
+}

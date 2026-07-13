@@ -75,8 +75,20 @@ module "alb" {
   soc_alb_sg_id          = module.sg.soc_alb_sg_id
   soc_api_instance_id    = module.ec2_soc.api_instance_id
   acm_arn                = var.acm_arn
+  alb_log_bucket_id      = module.s3.alb_log_bucket_id
 }
 
 module "ecr" {
   source = "./modules/ecr"
+}
+
+module "logging" {
+  source = "./modules/logging"
+
+  log_bucket_id            = module.s3.log_bucket_id
+  log_bucket_arn           = module.s3.log_bucket_arn
+  log_cmk_arn              = module.kms.log_cmk_arn
+  customer_data_bucket_arn = module.s3.customer_data_bucket_arn
+  prod_vpc_id              = module.vpc.prod_vpc_id
+  soc_vpc_id               = module.vpc.soc_vpc_id
 }

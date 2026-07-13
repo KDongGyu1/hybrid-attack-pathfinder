@@ -26,6 +26,29 @@ data "aws_iam_policy_document" "ec2_trust" {
 }
 
 ## ---------------------------------------------------------------------------
+## CloudWatch Log Groups — one per SOC server (CloudWatch Agent target, OS/app
+## logs per spec 7.2). Not auto-created by AWS, so no ordering hazard.
+## ---------------------------------------------------------------------------
+
+resource "aws_cloudwatch_log_group" "collector" {
+  name              = "/hap/soc-collector"
+  retention_in_days = 30
+  tags              = { Name = "hap-soc-collector-logs" }
+}
+
+resource "aws_cloudwatch_log_group" "graph" {
+  name              = "/hap/soc-graph"
+  retention_in_days = 30
+  tags              = { Name = "hap-soc-graph-logs" }
+}
+
+resource "aws_cloudwatch_log_group" "api" {
+  name              = "/hap/soc-api"
+  retention_in_days = 30
+  tags              = { Name = "hap-soc-api-logs" }
+}
+
+## ---------------------------------------------------------------------------
 ## hap-soc-collector — Nmap/Trivy/Scout Suite/AWS CLI/Config/Python. No
 ## Secrets Manager use per spec. SecurityAudit covers its read-only AWS
 ## collection role (Config/IAM/EC2/S3/RDS describe-type access).
@@ -45,6 +68,11 @@ resource "aws_iam_role_policy_attachment" "collector_ssm" {
 resource "aws_iam_role_policy_attachment" "collector_security_audit" {
   role       = aws_iam_role.collector.name
   policy_arn = "arn:aws:iam::aws:policy/SecurityAudit"
+}
+
+resource "aws_iam_role_policy_attachment" "collector_cloudwatch_agent" {
+  role       = aws_iam_role.collector.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
 resource "aws_iam_instance_profile" "collector" {
@@ -83,6 +111,11 @@ resource "aws_iam_role" "graph" {
 resource "aws_iam_role_policy_attachment" "graph_ssm" {
   role       = aws_iam_role.graph.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy_attachment" "graph_cloudwatch_agent" {
+  role       = aws_iam_role.graph.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
 data "aws_iam_policy_document" "graph_secret" {
@@ -141,6 +174,11 @@ resource "aws_iam_role" "api" {
 resource "aws_iam_role_policy_attachment" "api_ssm" {
   role       = aws_iam_role.api.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy_attachment" "api_cloudwatch_agent" {
+  role       = aws_iam_role.api.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
 data "aws_iam_policy_document" "api_secret" {

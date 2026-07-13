@@ -31,3 +31,8 @@ variable "acm_arn" {
   description = "ACM certificate ARN for hap-soc-alb HTTPS listener (issued manually, out of Terraform scope)"
   type        = string
 }
+
+variable "alb_log_bucket_id" {
+  description = "hap-alb-log-s3 bucket name, for ALB access log delivery"
+  type        = string
+}

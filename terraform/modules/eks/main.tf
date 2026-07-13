@@ -34,6 +34,14 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
+# Pre-created so retention_in_days applies; EKS would otherwise auto-create
+# this log group with no expiry when control-plane logging is enabled.
+resource "aws_cloudwatch_log_group" "cluster" {
+  name              = "/aws/eks/hap-eks/cluster"
+  retention_in_days = 30
+  tags              = { Name = "hap-eks-cluster-logs" }
+}
+
 resource "aws_eks_cluster" "main" {
   name     = "hap-eks"
   role_arn = aws_iam_role.eks_cluster.arn
@@ -45,9 +53,11 @@ resource "aws_eks_cluster" "main" {
     endpoint_private_access = true
   }
 
+  enabled_cluster_log_types = ["api", "audit", "authenticator"]
+
   tags = { Name = "hap-eks" }
 
-  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]
+  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy, aws_cloudwatch_log_group.cluster]
 }
 
 ## ---------------------------------------------------------------------------
@@ -109,6 +119,12 @@ resource "aws_iam_role_policy_attachment" "node_ecr" {
 resource "aws_iam_role_policy_attachment" "node_ssm" {
   role       = aws_iam_role.eks_node.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# Fluent Bit/Container Insights -> CloudWatch (spec 7.2: EKS App/Gitea logs)
+resource "aws_iam_role_policy_attachment" "node_cloudwatch_agent" {
+  role       = aws_iam_role.eks_node.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
 resource "aws_launch_template" "node" {

@@ -161,3 +161,11 @@ output "soc_alb_dns_name" {
 output "ecr_repository_url" {
   value = module.ecr.repository_url
 }
+
+output "cloudtrail_arn" {
+  value = module.logging.cloudtrail_arn
+}
+
+output "config_recorder_name" {
+  value = module.logging.config_recorder_name
+}
