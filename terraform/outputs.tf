@@ -61,3 +61,43 @@ output "soc_collector_sg_id" {
 output "soc_db_sg_id" {
   value = module.sg.soc_db_sg_id
 }
+
+output "prod_rds_cmk_arn" {
+  value = module.kms.prod_rds_cmk_arn
+}
+
+output "soc_rds_cmk_arn" {
+  value = module.kms.soc_rds_cmk_arn
+}
+
+output "prod_secrets_cmk_arn" {
+  value = module.kms.prod_secrets_cmk_arn
+}
+
+output "soc_secrets_cmk_arn" {
+  value = module.kms.soc_secrets_cmk_arn
+}
+
+output "data_cmk_arn" {
+  value = module.kms.data_cmk_arn
+}
+
+output "log_cmk_arn" {
+  value = module.kms.log_cmk_arn
+}
+
+output "gitea_db_secret_arn" {
+  value = module.secrets.gitea_db_secret_arn
+}
+
+output "soc_db_secret_arn" {
+  value = module.secrets.soc_db_secret_arn
+}
+
+output "jwt_secret_arn" {
+  value = module.secrets.jwt_secret_arn
+}
+
+output "neo4j_secret_arn" {
+  value = module.secrets.neo4j_secret_arn
+}
