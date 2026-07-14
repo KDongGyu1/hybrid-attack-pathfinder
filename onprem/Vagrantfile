@@ -1,0 +1,76 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+#
+# 하이브리드 공격 경로 탐색 시스템 - 온프레미스 랩 (Vagrant + VirtualBox)
+# VM 2대: hap-onprem-web(192.168.0.10), hap-onprem-db(192.168.0.30)
+#
+# IAM 액세스 키는 placeholder 입니다. 실값은 절대 하드코딩하지 말고
+# 아래 환경변수로 주입하세요 (키 확정 전까지는 placeholder 그대로 사용):
+#   HAP_WEB_AWS_ACCESS_KEY_ID / HAP_WEB_AWS_SECRET_ACCESS_KEY   (web: 백업+로그 전송용)
+#   HAP_DB_AWS_ACCESS_KEY_ID  / HAP_DB_AWS_SECRET_ACCESS_KEY    (db: 로그 전송용)
+#   HAP_AWS_REGION (기본 ap-northeast-2)
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/jammy64"
+
+  WEB_AWS_ACCESS_KEY_ID     = ENV.fetch("HAP_WEB_AWS_ACCESS_KEY_ID", "REPLACE_WITH_IAM_ACCESS_KEY")
+  WEB_AWS_SECRET_ACCESS_KEY = ENV.fetch("HAP_WEB_AWS_SECRET_ACCESS_KEY", "REPLACE_WITH_IAM_SECRET_KEY")
+  DB_AWS_ACCESS_KEY_ID      = ENV.fetch("HAP_DB_AWS_ACCESS_KEY_ID", "REPLACE_WITH_IAM_ACCESS_KEY")
+  DB_AWS_SECRET_ACCESS_KEY  = ENV.fetch("HAP_DB_AWS_SECRET_ACCESS_KEY", "REPLACE_WITH_IAM_SECRET_KEY")
+  AWS_DEFAULT_REGION        = ENV.fetch("HAP_AWS_REGION", "ap-northeast-2")
+
+  WP_DB_NAME       = "wordpress"
+  WP_DB_USER       = "wordpress"
+  WP_DB_PASSWORD   = ENV.fetch("HAP_WORDPRESS_DB_PASSWORD", "changeme")
+  DB_ROOT_PASSWORD = ENV.fetch("HAP_DB_ROOT_PASSWORD", "changeme-root")
+
+  CUSTOMER_DATA_BUCKET = "hap-customer-data-s3"
+  SOC_LOG_BUCKET        = "hap-soc-log-s3"
+
+  # --- hap-onprem-db : MySQL 8.0 (WordPress 백엔드), 외부 비노출 ---
+  config.vm.define "hap-onprem-db" do |db|
+    db.vm.hostname = "hap-onprem-db"
+    db.vm.network "private_network", ip: "192.168.0.30"
+
+    db.vm.provider "virtualbox" do |vb|
+      vb.name   = "hap-onprem-db"
+      vb.memory = 2048
+      vb.cpus   = 2
+    end
+
+    db.vm.provision "shell", path: "provision/db.sh", env: {
+      "WORDPRESS_DB_NAME"        => WP_DB_NAME,
+      "WORDPRESS_DB_USER"        => WP_DB_USER,
+      "WORDPRESS_DB_PASSWORD"    => WP_DB_PASSWORD,
+      "DB_ROOT_PASSWORD"         => DB_ROOT_PASSWORD,
+      "DB_AWS_ACCESS_KEY_ID"     => DB_AWS_ACCESS_KEY_ID,
+      "DB_AWS_SECRET_ACCESS_KEY" => DB_AWS_SECRET_ACCESS_KEY,
+      "AWS_DEFAULT_REGION"       => AWS_DEFAULT_REGION,
+      "SOC_LOG_BUCKET"           => SOC_LOG_BUCKET
+    }
+  end
+
+  # --- hap-onprem-web : Apache+PHP+WordPress, AWS CLI, 로그/백업 에이전트, 외부 노출 ---
+  config.vm.define "hap-onprem-web" do |web|
+    web.vm.hostname = "hap-onprem-web"
+    web.vm.network "private_network", ip: "192.168.0.10"
+    web.vm.network "forwarded_port", guest: 80, host: 8080
+
+    web.vm.provider "virtualbox" do |vb|
+      vb.name   = "hap-onprem-web"
+      vb.memory = 2048
+      vb.cpus   = 2
+    end
+
+    web.vm.provision "shell", path: "provision/web.sh", env: {
+      "WORDPRESS_DB_NAME"        => WP_DB_NAME,
+      "WORDPRESS_DB_USER"        => WP_DB_USER,
+      "WORDPRESS_DB_PASSWORD"    => WP_DB_PASSWORD,
+      "AWS_ACCESS_KEY_ID"        => WEB_AWS_ACCESS_KEY_ID,
+      "AWS_SECRET_ACCESS_KEY"    => WEB_AWS_SECRET_ACCESS_KEY,
+      "AWS_DEFAULT_REGION"       => AWS_DEFAULT_REGION,
+      "CUSTOMER_DATA_BUCKET"     => CUSTOMER_DATA_BUCKET,
+      "SOC_LOG_BUCKET"           => SOC_LOG_BUCKET
+    }
+  end
+end
