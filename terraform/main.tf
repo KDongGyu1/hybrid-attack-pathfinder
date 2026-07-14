@@ -101,4 +101,7 @@ module "iam" {
   irsa_gitea_role_name     = module.eks.irsa_gitea_role_name
   gitea_db_secret_arn      = module.secrets.gitea_db_secret_arn
   prod_secrets_cmk_arn     = module.kms.prod_secrets_cmk_arn
+  log_bucket_arn           = module.s3.log_bucket_arn
+  data_cmk_arn             = module.kms.data_cmk_arn
+  log_cmk_arn              = module.kms.log_cmk_arn
 }

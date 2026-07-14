@@ -27,3 +27,18 @@ variable "prod_secrets_cmk_arn" {
   description = "hap-prod-secrets-cmk ARN (S4 교정 버전에서 Gitea IRSA가 복호화할 CMK — soc-secrets-cmk와 혼용 금지)"
   type        = string
 }
+
+variable "log_bucket_arn" {
+  description = "hap-soc-log-s3 ARN (on-prem web/db 키의 로그 전송 대상, onprem/* prefix)"
+  type        = string
+}
+
+variable "data_cmk_arn" {
+  description = "hap-data-cmk ARN — hap-customer-data-s3 기본 SSE-KMS 암호화 키. PutObject 성공을 위해 on-prem web 키에 kms:GenerateDataKey 부여 필요"
+  type        = string
+}
+
+variable "log_cmk_arn" {
+  description = "hap-log-cmk ARN — hap-soc-log-s3 기본 SSE-KMS 암호화 키. PutObject 성공을 위해 on-prem web/db 키에 kms:GenerateDataKey 부여 필요"
+  type        = string
+}

@@ -155,3 +155,116 @@ resource "aws_iam_role_policy_attachment" "gitea_role_policy" {
   role       = var.irsa_gitea_role_name
   policy_arn = aws_iam_policy.gitea_role_policy.arn
 }
+
+## ---------------------------------------------------------------------------
+## Scenario 1/3 — On-Prem 침해 → IAM Access Key 탈취 → S3
+##   hap-onprem-web: 백업(hap-customer-data-s3) + web 로그 전송용, S1/S3의 탈취 대상 키.
+##     취약 버전 = 광범위 S3 권한, 교정 버전 = PutObject 최소권한(버킷 정책은 단일 계정이라
+##     불필요 — 인프라 쪽 리소스 정책이 아닌 이 identity 정책만으로 충분).
+##   hap-onprem-db : db 로그 전송 전용 최소권한 고정(취약/교정 구분 없음). customer-data 접근이
+##     없어 유출돼도 무해하므로 공격 경로 그래프에는 포함되지 않는다.
+## ---------------------------------------------------------------------------
+
+resource "aws_iam_user" "onprem_web" {
+  name = "hap-onprem-web"
+  tags = { Name = "hap-onprem-web" }
+}
+
+# 실제 백업/로그 자동화가 두 모드 모두에서 동작해야 하므로(dev_01과 달리 키 자체를
+# 제거하지 않음), 버전 구분은 아래 정책 권한 범위로만 표현한다.
+resource "aws_iam_access_key" "onprem_web" {
+  user = aws_iam_user.onprem_web.name
+}
+
+resource "aws_iam_policy" "onprem_web_s3" {
+  name        = "hap-onprem-web-s3-policy"
+  description = "S1/S3 탈취 대상 키(hap-onprem-web) 권한 — 취약: 광범위 S3 접근 / 교정: 백업·로그 PutObject 최소권한"
+
+  # 두 버킷 모두 기본 SSE-KMS 암호화가 강제되어 있어(s3 모듈), s3:PutObject/GetObject가
+  # 실제로 성공하려면 해당 CMK에 대한 kms 권한이 identity 정책에도 있어야 한다
+  # (hap-gitea-role-policy와 동일한 패턴).
+  policy = local.is_vulnerable ? jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "OverPermissiveOnpremWebS3Access"
+        Effect   = "Allow"
+        Action   = "s3:*"
+        Resource = "*"
+      },
+      {
+        Sid      = "OnpremWebKmsForS3Sse"
+        Effect   = "Allow"
+        Action   = ["kms:GenerateDataKey*", "kms:Decrypt"]
+        Resource = [var.data_cmk_arn, var.log_cmk_arn]
+      }
+    ]
+    }) : jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "OnpremWebBackupAndLogPut"
+        Effect = "Allow"
+        Action = "s3:PutObject"
+        # onprem/scripts/backup-to-s3.sh가 실제로 쓰는 두 프리픽스로 한정 (버킷 전체 접근 금지)
+        Resource = [
+          "${var.customer_data_bucket_arn}/wordpress-files/*",
+          "${var.customer_data_bucket_arn}/wordpress-db/*",
+          "${var.log_bucket_arn}/onprem/*",
+        ]
+      },
+      {
+        Sid      = "OnpremWebKmsForS3Sse"
+        Effect   = "Allow"
+        Action   = "kms:GenerateDataKey*"
+        Resource = [var.data_cmk_arn, var.log_cmk_arn]
+      }
+    ]
+  })
+
+  tags = { Name = "hap-onprem-web-s3-policy" }
+}
+
+resource "aws_iam_user_policy_attachment" "onprem_web_s3" {
+  user       = aws_iam_user.onprem_web.name
+  policy_arn = aws_iam_policy.onprem_web_s3.arn
+}
+
+resource "aws_iam_user" "onprem_db" {
+  name = "hap-onprem-db"
+  tags = { Name = "hap-onprem-db" }
+}
+
+resource "aws_iam_access_key" "onprem_db" {
+  user = aws_iam_user.onprem_db.name
+}
+
+resource "aws_iam_policy" "onprem_db_s3" {
+  name        = "hap-onprem-db-s3-policy"
+  description = "무해한 키(hap-onprem-db) — hap-soc-log-s3/onprem/* 로그 전송 전용 최소권한, customer-data 접근 불가(취약/교정 구분 없음)"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "OnpremDbLogPutOnly"
+        Effect   = "Allow"
+        Action   = "s3:PutObject"
+        Resource = "${var.log_bucket_arn}/onprem/*"
+      },
+      {
+        Sid      = "OnpremDbKmsForS3Sse"
+        Effect   = "Allow"
+        Action   = "kms:GenerateDataKey*"
+        Resource = var.log_cmk_arn
+      }
+    ]
+  })
+
+  tags = { Name = "hap-onprem-db-s3-policy" }
+}
+
+resource "aws_iam_user_policy_attachment" "onprem_db_s3" {
+  user       = aws_iam_user.onprem_db.name
+  policy_arn = aws_iam_policy.onprem_db_s3.arn
+}
