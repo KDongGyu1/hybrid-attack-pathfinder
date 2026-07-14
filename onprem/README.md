@@ -24,21 +24,52 @@ onprem/
 └─ README.md
 ```
 
-## 실행 방법
+## 실행 방법 (수동, Windows + VirtualBox 기준)
 
-```bash
+### 0. 사전 준비
+- VirtualBox, Vagrant 설치.
+- VirtualBox가 PATH에 없어도 무방 — `VBOX_MSI_INSTALL_PATH` 환경변수(설치 시 자동 등록)만
+  있으면 Vagrant가 인식한다.
+
+### 1. VM 기동 (db 먼저 → web)
+```powershell
 cd onprem
 
 # IAM 키가 확정되면 아래 환경변수로 주입 (미설정 시 placeholder 사용)
-export HAP_WEB_AWS_ACCESS_KEY_ID=...
-export HAP_WEB_AWS_SECRET_ACCESS_KEY=...
-export HAP_DB_AWS_ACCESS_KEY_ID=...
-export HAP_DB_AWS_SECRET_ACCESS_KEY=...
+$env:HAP_WEB_AWS_ACCESS_KEY_ID = "..."
+$env:HAP_WEB_AWS_SECRET_ACCESS_KEY = "..."
+$env:HAP_DB_AWS_ACCESS_KEY_ID = "..."
+$env:HAP_DB_AWS_SECRET_ACCESS_KEY = "..."
 
-vagrant up
+vagrant up hap-onprem-db
+vagrant up hap-onprem-web
 ```
+최초 실행은 `ubuntu/jammy64` 박스 다운로드(수백MB) + 패키지 설치로 10~20분 정도 걸릴 수 있다.
 
-기동 후 `http://localhost:8080` 에서 WordPress 설치 마법사 접근 가능.
+### 2. 확인
+```powershell
+# private network로 서비스 응답 확인
+Test-NetConnection -ComputerName 192.168.0.30 -Port 3306   # db: MySQL
+Test-NetConnection -ComputerName 192.168.0.10 -Port 80      # web: Apache
+```
+브라우저에서 `http://localhost:8080` 접속 → WordPress 설치 마법사가 뜨면 정상.
+(DB 연결 에러가 뜨면 3번 문제 상황 참고.)
+
+### 3. 자주 겪는 문제와 해결
+| 증상 | 원인 | 해결 |
+| --- | --- | --- |
+| `vagrant up` 중 `File.exists?` NoMethodError로 크래시 후 VM이 destroy됨 | 로컬에 설치된 `vagrant-vbguest` 플러그인이 최신 Vagrant의 Ruby와 호환 안 됨 | Vagrantfile에 이미 `config.vbguest.auto_update = false` 반영됨. 그래도 재발하면 `vagrant plugin uninstall vagrant-vbguest` |
+| `cp: cannot stat '/vagrant/scripts/...'` | Guest Additions 버전(박스 내장 6.0.0)과 VirtualBox 버전 불일치로 공유폴더(`/vagrant`)가 마운트 안 됨 | Vagrantfile이 `file` provisioner(SCP)로 스크립트를 `/tmp`에 전달하도록 이미 수정됨. 재발 시 `vagrant provision <name>`으로 재적용 |
+| `192.168.0.30`/`192.168.0.10` ping·포트 응답 없음 (VM은 `running`인데) | Ubuntu 22.04(netplan/cloud-init) 이미지에서 Vagrant의 private_network 설정이 재부팅 후 유지되지 않음 | `provision/db.sh`, `provision/web.sh`에 netplan 고정 설정 + cloud-init 네트워크 재설정 비활성화가 이미 반영됨. 그래도 안 되면 `vagrant reload <name>` 한 번, 그래도 안 되면 `vagrant halt <name>` → `vagrant up <name>` 으로 완전 재부팅 |
+| `vagrant provision`이 "Guest-specific operations were attempted on a machine that is not ready" 로 실패 | 이전 세션의 SSH 키/연결 상태가 꼬임 | `vagrant halt <name>` → `vagrant up <name>` 으로 새 SSH 키 교환을 유도 |
+| `vagrant halt`가 "another process is already executing an action" 로 실패 | 이전 vagrant 프로세스가 비정상 종료되며 lock이 안 풀림(실제 ruby/vagrant 프로세스는 이미 종료된 경우가 대부분) | 잠시 후 재시도. 계속되면 작업관리자에서 `ruby`/`vagrant` 프로세스 확인 후 종료 |
+
+### 4. 종료 / 재개
+```powershell
+vagrant halt        # 두 VM 모두 정지 (디스크 상태 보존, 재프로비저닝 불필요)
+vagrant up          # 다음에 그대로 재개
+vagrant destroy     # 완전히 지우고 처음부터 다시 만들 때만 사용
+```
 
 ## 로그/백업 흐름
 

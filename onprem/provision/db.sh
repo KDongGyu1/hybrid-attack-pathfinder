@@ -10,6 +10,23 @@ WP_DB_USER="${WORDPRESS_DB_USER:-wordpress}"
 WP_DB_PASSWORD="${WORDPRESS_DB_PASSWORD:-changeme}"
 DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-changeme-root}"
 WEB_HOST="192.168.0.10"
+PRIVATE_IP="192.168.0.30"
+
+# ubuntu/jammy64(cloud-init) 이미지에서 Vagrant의 private_network 설정이
+# 재부팅 시 유지되지 않는 문제 회피: netplan 고정 설정 + cloud-init 네트워크 재설정 비활성화
+cat > /etc/netplan/60-hap-static.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    enp0s8:
+      dhcp4: no
+      addresses: [${PRIVATE_IP}/24]
+EOF
+chmod 600 /etc/netplan/60-hap-static.yaml
+cat > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg <<EOF
+network: {config: disabled}
+EOF
+netplan apply
 
 apt-get update -y
 apt-get install -y mysql-server unzip curl auditd
@@ -58,9 +75,9 @@ output = json
 EOF
 chmod 600 /root/.aws/credentials /root/.aws/config
 
-# --- 로그 전송 스크립트 배치 ---
+# --- 로그 전송 스크립트 배치 (file provisioner가 /tmp에 SCP로 전달) ---
 mkdir -p /usr/local/bin /var/log/hap
-cp /vagrant/scripts/ship-logs-to-s3.sh /usr/local/bin/ship-logs-to-s3.sh
+cp /tmp/ship-logs-to-s3.sh /usr/local/bin/ship-logs-to-s3.sh
 chmod 750 /usr/local/bin/ship-logs-to-s3.sh
 
 cat > /etc/environment.hap <<EOF

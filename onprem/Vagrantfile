@@ -13,6 +13,12 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/jammy64"
 
+  # 로컬에 설치된 vagrant-vbguest 플러그인이 최신 Vagrant의 Ruby에서 깨지는 이슈 회피
+  # (Guest Additions 자동 체크/설치 비활성화)
+  if Vagrant.has_plugin?("vagrant-vbguest")
+    config.vbguest.auto_update = false
+  end
+
   WEB_AWS_ACCESS_KEY_ID     = ENV.fetch("HAP_WEB_AWS_ACCESS_KEY_ID", "REPLACE_WITH_IAM_ACCESS_KEY")
   WEB_AWS_SECRET_ACCESS_KEY = ENV.fetch("HAP_WEB_AWS_SECRET_ACCESS_KEY", "REPLACE_WITH_IAM_SECRET_KEY")
   DB_AWS_ACCESS_KEY_ID      = ENV.fetch("HAP_DB_AWS_ACCESS_KEY_ID", "REPLACE_WITH_IAM_ACCESS_KEY")
@@ -38,6 +44,9 @@ Vagrant.configure("2") do |config|
       vb.cpus   = 2
     end
 
+    # /vagrant 공유폴더(vboxsf) 없이도 동작하도록 file provisioner(SCP)로 스크립트 전달
+    db.vm.provision "file", source: "scripts/ship-logs-to-s3.sh", destination: "/tmp/ship-logs-to-s3.sh"
+
     db.vm.provision "shell", path: "provision/db.sh", env: {
       "WORDPRESS_DB_NAME"        => WP_DB_NAME,
       "WORDPRESS_DB_USER"        => WP_DB_USER,
@@ -61,6 +70,10 @@ Vagrant.configure("2") do |config|
       vb.memory = 2048
       vb.cpus   = 2
     end
+
+    # /vagrant 공유폴더(vboxsf) 없이도 동작하도록 file provisioner(SCP)로 스크립트 전달
+    web.vm.provision "file", source: "scripts/backup-to-s3.sh", destination: "/tmp/backup-to-s3.sh"
+    web.vm.provision "file", source: "scripts/ship-logs-to-s3.sh", destination: "/tmp/ship-logs-to-s3.sh"
 
     web.vm.provision "shell", path: "provision/web.sh", env: {
       "WORDPRESS_DB_NAME"        => WP_DB_NAME,
