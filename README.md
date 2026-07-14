@@ -93,7 +93,7 @@ DB 서브넷은 외부 라우팅 없이 로컬만 유지합니다.
       (`modules/eks`, `modules/ec2_soc`, `modules/alb`)
 - [x] **6단계** — ECR (`modules/ecr`)
 - [x] **7단계** — 로깅(CloudTrail, VPC Flow Logs, Config, CloudWatch) (`modules/logging`)
-- [ ] 8단계 — IAM(시나리오용, 취약→교정 2단계 배포) — 담당자 확인 중
+- [x] **8단계** — IAM(시나리오용, 취약→교정 2단계 배포) (`modules/iam`, `var.iam_mode`)
 
 Terraform 스코프에서 제외되는 항목: 온프레미스(Vagrant/VirtualBox 별도 구성),
 ACM 인증서·도메인(수동 발급, ARN만 변수로 연결), VPN/VGW·Bastion·Redis·ACM
