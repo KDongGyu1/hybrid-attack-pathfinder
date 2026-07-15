@@ -77,7 +77,8 @@ resource "aws_iam_openid_connect_provider" "eks" {
 }
 
 ## ---------------------------------------------------------------------------
-## hap-nodegroup — dev: t3.small x1 / presentation: t3.medium x2, Multi-AZ
+## hap-nodegroup — dev: t3.small x1 / presentation: t3.medium x2. Multi-AZ 미사용
+## 확정 - 두 모드 다 hap-prod-app-2a 단일 서브넷에만 배치(아래 subnet_ids 참고).
 ## Custom launch template attaches hap-prod-app-sg so the SG rules
 ## (ALB->3000, SOC scan) actually apply to the nodes.
 ## ---------------------------------------------------------------------------
@@ -156,10 +157,12 @@ resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "hap-nodegroup"
   node_role_arn   = aws_iam_role.eks_node.arn
-  subnet_ids      = var.prod_app_subnet_ids
-  ami_type        = "AL2023_x86_64_STANDARD"
-  instance_types  = local.instance_types
-  capacity_type   = "ON_DEMAND"
+  # Multi-AZ 미사용 확정 - 노드는 hap-prod-app-2a 단일 서브넷에만 배치
+  # (컨트롤플레인 vpc_config는 AWS 요건상 2AZ 유지, 위 aws_eks_cluster 참고)
+  subnet_ids     = [var.prod_app_subnet_ids[0]]
+  ami_type       = "AL2023_x86_64_STANDARD"
+  instance_types = local.instance_types
+  capacity_type  = "ON_DEMAND"
 
   launch_template {
     id      = aws_launch_template.node.id
