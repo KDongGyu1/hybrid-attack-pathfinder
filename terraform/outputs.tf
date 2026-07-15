@@ -201,3 +201,19 @@ output "s3_readonly_role_arn" {
 output "gitea_role_policy_arn" {
   value = module.iam.gitea_role_policy_arn
 }
+
+output "onprem_web_user_arn" {
+  value = module.iam.onprem_web_user_arn
+}
+
+output "onprem_web_access_key_id" {
+  value = module.iam.onprem_web_access_key_id
+}
+
+output "onprem_db_user_arn" {
+  value = module.iam.onprem_db_user_arn
+}
+
+output "onprem_db_access_key_id" {
+  value = module.iam.onprem_db_access_key_id
+}
