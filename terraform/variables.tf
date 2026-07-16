@@ -44,8 +44,9 @@ variable "eks_stage" {
 }
 
 variable "acm_arn" {
-  description = "ACM certificate ARN for hap-soc-alb HTTPS listener (issued manually, out of Terraform scope)"
+  description = "ACM certificate ARN for hap-soc-alb HTTPS listener (issued manually, out of Terraform scope). Empty string = listener not created yet."
   type        = string
+  default     = ""
 }
 
 variable "iam_mode" {

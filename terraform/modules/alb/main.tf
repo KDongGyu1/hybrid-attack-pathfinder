@@ -91,7 +91,11 @@ resource "aws_lb_target_group_attachment" "soc_api" {
   port             = 3000
 }
 
+# ACM 인증서 발급 전까지는 리스너 자체를 생략(var.acm_arn="" 이면 미생성).
+# 인증서 나오면 var.acm_arn 채우기만 하면 됨 - 코드 변경 불필요.
 resource "aws_lb_listener" "soc_https" {
+  count = var.acm_arn != "" ? 1 : 0
+
   load_balancer_arn = aws_lb.soc.arn
   port              = 443
   protocol          = "HTTPS"
