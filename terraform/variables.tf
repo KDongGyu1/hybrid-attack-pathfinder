@@ -4,6 +4,12 @@ variable "aws_region" {
   default     = "ap-northeast-2"
 }
 
+variable "aws_profile" {
+  description = "Named AWS CLI profile to authenticate with (~/.aws/credentials). null = default credential chain (env vars, default profile, instance role, etc.)"
+  type        = string
+  default     = "test2"
+}
+
 variable "azs" {
   description = "Availability zones used across both VPCs (2-AZ)"
   type        = list(string)
