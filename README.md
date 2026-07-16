@@ -67,9 +67,11 @@ DB 서브넷은 외부 라우팅 없이 로컬만 유지합니다.
 - **암호화**: 민감 데이터스토어는 고객관리형 CMK 6개로 Prod/SOC 신뢰 경계를 분리
   (`hap-prod-rds-cmk`/`hap-soc-rds-cmk`, `hap-prod-secrets-cmk`/`hap-soc-secrets-cmk`,
   `hap-data-cmk`, `hap-log-cmk`). 그 외는 AWS 관리형 기본 암호화.
-- **로그**: 모든 로그의 최종 저장소는 `hap-soc-log-s3` (Object Lock·버전 관리로
-  무결성, Lifecycle로 비용 관리). CloudTrail·ALB·Flow Logs는 S3 직행, 앱/DB는
-  CloudWatch 경유, 온프렘 로그는 collector까지 에이전트로 전송.
+- **로그**: CloudTrail·VPC Flow Logs는 `hap-soc-log-s3`(Object Lock·버전 관리로
+  무결성, Lifecycle로 비용 관리)로 직행. ALB 액세스 로그와 AWS Config는
+  `hap-soc-alb-log-s3`로 직행 — Config의 delivery channel이 Object Lock 버킷을
+  지원하지 않아 별도 버킷을 사용. 앱/DB는 CloudWatch 경유, 온프렘 로그는
+  collector까지 에이전트로 전송.
 
 ## 침해 시나리오 (참고 — 엔진 케이스 S1~S4)
 
@@ -88,7 +90,7 @@ DB 서브넷은 외부 라우팅 없이 로컬만 유지합니다.
       (`modules/vpc`: VPC 2개, 서브넷 12개, RT, IGW, NAT, VPC Peering)
 - [x] **2단계** — Security Group (`modules/sg`)
 - [x] **3단계** — KMS(CMK 6개) + Secrets Manager (`modules/kms`, `modules/secrets`)
-- [x] **4단계** — RDS 2개, S3 2개 (`modules/rds`, `modules/s3`)
+- [x] **4단계** — RDS 2개, S3 3개 (`modules/rds`, `modules/s3`)
 - [x] **5단계** — EKS(클러스터+노드그룹+IRSA), EC2 SOC 3대, ALB 2개
       (`modules/eks`, `modules/ec2_soc`, `modules/alb`)
 - [x] **6단계** — ECR (`modules/ecr`)
