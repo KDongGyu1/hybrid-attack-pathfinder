@@ -84,9 +84,13 @@ resource "aws_s3_bucket_object_lock_configuration" "log" {
 }
 
 ## ---------------------------------------------------------------------------
-## hap-soc-alb-log-s3 — ALB access logs only (Prod+SOC). SSE-S3 (AES256): ELB
-## access log delivery does not support SSE-KMS destination buckets, so this
-## is kept separate from hap-soc-log-s3 (which is SSE-KMS).
+## hap-soc-alb-log-s3 — ALB access logs (Prod+SOC) + AWS Config delivery
+## channel (config/ prefix). SSE-S3 (AES256): ELB access log delivery does
+## not support SSE-KMS destination buckets, so this is kept separate from
+## hap-soc-log-s3 (which is SSE-KMS). AWS Config is also routed here instead
+## of hap-soc-log-s3 because AWS Config's delivery channel does not support
+## S3 Object Lock buckets (hap-soc-log-s3 has Object Lock enabled for
+## CloudTrail/Flow Logs integrity; this bucket has neither).
 ## ---------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "alb_log" {
@@ -119,6 +123,52 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "alb_log" {
       sse_algorithm = "AES256"
     }
   }
+}
+
+# ALB access log delivery writes via the regional ELB service account, not a
+# service principal - grant it PutObject or ModifyLoadBalancerAttributes 400s.
+data "aws_elb_service_account" "main" {}
+
+data "aws_iam_policy_document" "alb_log_policy" {
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.alb_log.arn}/*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = [data.aws_elb_service_account.main.arn]
+    }
+  }
+
+  statement {
+    sid       = "ConfigAclCheck"
+    effect    = "Allow"
+    actions   = ["s3:GetBucketAcl"]
+    resources = [aws_s3_bucket.alb_log.arn]
+
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid       = "ConfigWrite"
+    effect    = "Allow"
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.alb_log.arn}/config/*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "alb_log" {
+  bucket = aws_s3_bucket.alb_log.id
+  policy = data.aws_iam_policy_document.alb_log_policy.json
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "log" {

@@ -45,7 +45,7 @@ resource "aws_cloudwatch_log_group" "cluster" {
 resource "aws_eks_cluster" "main" {
   name     = "hap-eks"
   role_arn = aws_iam_role.eks_cluster.arn
-  version  = "1.29"
+  version  = "1.33"
 
   vpc_config {
     subnet_ids              = var.prod_app_subnet_ids
@@ -131,8 +131,13 @@ resource "aws_iam_role_policy_attachment" "node_cloudwatch_agent" {
 resource "aws_launch_template" "node" {
   name_prefix = "hap-nodegroup-"
 
+  # A custom launch template SG list *replaces* (not adds to) the cluster SG
+  # EKS would otherwise attach automatically, so the cluster SG must be
+  # included explicitly - without it, nodes can't reach the private API
+  # endpoint (its ENI only accepts traffic from cluster SG members) and fail
+  # to join.
   network_interfaces {
-    security_groups = [var.prod_app_sg_id]
+    security_groups = [var.prod_app_sg_id, aws_eks_cluster.main.vpc_config[0].cluster_security_group_id]
   }
 
   block_device_mappings {

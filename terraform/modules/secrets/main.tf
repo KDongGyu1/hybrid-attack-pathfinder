@@ -3,8 +3,9 @@
 ## ---------------------------------------------------------------------------
 
 resource "random_password" "gitea_db" {
-  length  = 32
-  special = true
+  length           = 32
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
 resource "aws_secretsmanager_secret" "gitea_db" {
@@ -23,8 +24,9 @@ resource "aws_secretsmanager_secret_version" "gitea_db" {
 ## ---------------------------------------------------------------------------
 
 resource "random_password" "soc_db" {
-  length  = 32
-  special = true
+  length           = 32
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
 resource "aws_secretsmanager_secret" "soc_db" {

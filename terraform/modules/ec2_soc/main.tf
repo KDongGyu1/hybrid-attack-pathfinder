@@ -4,7 +4,7 @@ data "aws_ami" "al2023" {
 
   filter {
     name   = "name"
-    values = ["al2023-ami-*-x86_64"]
+    values = ["al2023-ami-2023.*-x86_64"]
   }
 
   filter {
@@ -145,7 +145,7 @@ resource "aws_iam_instance_profile" "graph" {
 
 resource "aws_instance" "graph" {
   ami                         = data.aws_ami.al2023.id
-  instance_type               = "t3.medium"
+  instance_type               = "t3.small"
   subnet_id                   = var.soc_app_subnet_ids[0]
   private_ip                  = "10.1.20.20"
   vpc_security_group_ids      = [var.soc_server_sg_id]

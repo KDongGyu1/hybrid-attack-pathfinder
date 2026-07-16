@@ -1,8 +1,10 @@
 data "aws_caller_identity" "current" {}
 
 ## ---------------------------------------------------------------------------
-## hap-soc-log-s3 bucket policy — grants CloudTrail/Config/VPC Flow Logs
-## write access, each scoped to its own prefix.
+## hap-soc-log-s3 bucket policy — grants CloudTrail/VPC Flow Logs write
+## access, each scoped to its own prefix. AWS Config is NOT delivered here:
+## its delivery channel doesn't support Object Lock buckets, so it's routed
+## to hap-soc-alb-log-s3 instead (see s3 module).
 ## ---------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "log_bucket_policy" {
@@ -18,6 +20,9 @@ data "aws_iam_policy_document" "log_bucket_policy" {
     }
   }
 
+  # No s3:x-amz-acl condition - hap-soc-log-s3 uses BucketOwnerEnforced object
+  # ownership (ACLs disabled), so the bucket owner always owns written
+  # objects and that condition would never match.
   statement {
     sid       = "CloudTrailWrite"
     effect    = "Allow"
@@ -27,42 +32,6 @@ data "aws_iam_policy_document" "log_bucket_policy" {
     principals {
       type        = "Service"
       identifiers = ["cloudtrail.amazonaws.com"]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "s3:x-amz-acl"
-      values   = ["bucket-owner-full-control"]
-    }
-  }
-
-  statement {
-    sid       = "ConfigAclCheck"
-    effect    = "Allow"
-    actions   = ["s3:GetBucketAcl"]
-    resources = [var.log_bucket_arn]
-
-    principals {
-      type        = "Service"
-      identifiers = ["config.amazonaws.com"]
-    }
-  }
-
-  statement {
-    sid       = "ConfigWrite"
-    effect    = "Allow"
-    actions   = ["s3:PutObject"]
-    resources = ["${var.log_bucket_arn}/config/*"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["config.amazonaws.com"]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "s3:x-amz-acl"
-      values   = ["bucket-owner-full-control"]
     }
   }
 
@@ -88,12 +57,6 @@ data "aws_iam_policy_document" "log_bucket_policy" {
       type        = "Service"
       identifiers = ["delivery.logs.amazonaws.com"]
     }
-
-    condition {
-      test     = "StringEquals"
-      variable = "s3:x-amz-acl"
-      values   = ["bucket-owner-full-control"]
-    }
   }
 }
 
@@ -103,8 +66,9 @@ resource "aws_s3_bucket_policy" "log" {
 }
 
 ## ---------------------------------------------------------------------------
-## hap-log-cmk key policy — grants the same 3 services permission to encrypt
-## with the CMK (default key policy only allows the account root).
+## hap-log-cmk key policy — grants CloudTrail/VPC Flow Logs permission to
+## encrypt with the CMK (default key policy only allows the account root).
+## Config isn't listed - it writes to hap-soc-alb-log-s3 (SSE-S3), not here.
 ## ---------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "log_cmk_policy" {
@@ -128,7 +92,7 @@ data "aws_iam_policy_document" "log_cmk_policy" {
 
     principals {
       type        = "Service"
-      identifiers = ["cloudtrail.amazonaws.com", "config.amazonaws.com", "delivery.logs.amazonaws.com"]
+      identifiers = ["cloudtrail.amazonaws.com", "delivery.logs.amazonaws.com"]
     }
   }
 }
@@ -225,11 +189,10 @@ resource "aws_config_configuration_recorder" "main" {
 
 resource "aws_config_delivery_channel" "main" {
   name           = "hap-config-channel"
-  s3_bucket_name = var.log_bucket_id
+  s3_bucket_name = var.config_log_bucket_id
   s3_key_prefix  = "config"
-  s3_kms_key_arn = var.log_cmk_arn
 
-  depends_on = [aws_config_configuration_recorder.main, aws_s3_bucket_policy.log, aws_kms_key_policy.log]
+  depends_on = [aws_config_configuration_recorder.main]
 }
 
 resource "aws_config_configuration_recorder_status" "main" {
