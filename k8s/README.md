@@ -39,15 +39,29 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
 
 ## 2. Secrets Store CSI Driver 설치 (클러스터 애드온, 1회만)
 
-`hap-db-secret`을 Pod에 마운트하기 위한 드라이버 + AWS provider.
+`hap-db-secret`을 Pod에 마운트하기 위한 드라이버 + AWS provider. 기본 옵션만으로
+설치하면 아래 두 가지가 막히므로 반드시 옵션을 같이 지정할 것:
+
+- `tokenRequests` 미설정 시 IRSA 토큰을 못 받아 마운트가
+  `CSI token error: serviceAccount.tokens not provided` 로 실패함.
+- `syncSecret.enabled=true` 없이는 `secretproviderclass.yaml`의 `secretObjects`
+  동기화가 동작하지 않아 `gitea-db-credentials` 시크릿이 생성되지 않고,
+  Pod가 `CreateContainerConfigError`(secret not found)로 멈춤.
 
 ```bash
 helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
 helm repo update
-helm install csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver -n kube-system
+helm install csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver \
+  -n kube-system \
+  --set syncSecret.enabled=true \
+  --set-json 'tokenRequests=[{"audience":"sts.amazonaws.com","expirationSeconds":3600}]'
 
 kubectl apply -f https://raw.githubusercontent.com/aws/secrets-store-csi-driver-provider-aws/main/deployment/aws-provider-installer.yaml
 ```
+
+이미 옵션 없이 설치해버렸다면 `helm upgrade`로 같은 옵션을 주면 됨 (재설치 불필요).
+단, 이미 떠 있던 Pod는 CSIDriver의 `tokenRequests`를 반영한 projected token이
+없으므로 `kubectl delete pod -n prod -l app=gitea`로 재생성해야 함.
 
 ## 3. Gitea 이미지 미러링 (Docker Hub → hap-ecr)
 
