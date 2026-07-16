@@ -24,7 +24,7 @@ ACCOUNT="$(aws sts get-caller-identity --query Account --output text 2>/dev/null
 log "backup started (bucket=${BUCKET}, account=${ACCOUNT})"
 
 if tar czf "${WORK_DIR}/wordpress-files-${TIMESTAMP}.tar.gz" -C /var/www/html . \
-  && mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "${WORK_DIR}/wordpress-db-${TIMESTAMP}.sql" \
+  && mysqldump --no-tablespaces -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "${WORK_DIR}/wordpress-db-${TIMESTAMP}.sql" \
   && aws s3 cp "${WORK_DIR}/wordpress-files-${TIMESTAMP}.tar.gz" "s3://${BUCKET}/wordpress-files/" --only-show-errors \
   && aws s3 cp "${WORK_DIR}/wordpress-db-${TIMESTAMP}.sql" "s3://${BUCKET}/wordpress-db/" --only-show-errors
 then

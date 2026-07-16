@@ -81,12 +81,12 @@ cp /tmp/ship-logs-to-s3.sh /usr/local/bin/ship-logs-to-s3.sh
 chmod 750 /usr/local/bin/backup-to-s3.sh /usr/local/bin/ship-logs-to-s3.sh
 
 cat > /etc/environment.hap <<EOF
-CUSTOMER_DATA_BUCKET=${CUSTOMER_DATA_BUCKET:-hap-customer-data-s3}
-SOC_LOG_BUCKET=${SOC_LOG_BUCKET:-hap-soc-log-s3}
-WORDPRESS_DB_NAME=${WP_DB_NAME}
-WORDPRESS_DB_USER=${WP_DB_USER}
-WORDPRESS_DB_PASSWORD=${WP_DB_PASSWORD}
-HAP_LOG_ROLE=web
+export CUSTOMER_DATA_BUCKET=${CUSTOMER_DATA_BUCKET:-hap-customer-data-s3}
+export SOC_LOG_BUCKET=${SOC_LOG_BUCKET:-hap-soc-log-s3}
+export WORDPRESS_DB_NAME=${WP_DB_NAME}
+export WORDPRESS_DB_USER=${WP_DB_USER}
+export WORDPRESS_DB_PASSWORD=${WP_DB_PASSWORD}
+export HAP_LOG_ROLE=web
 EOF
 
 cat > /etc/cron.d/hap-web <<EOF

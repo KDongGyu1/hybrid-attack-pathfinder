@@ -81,8 +81,8 @@ cp /tmp/ship-logs-to-s3.sh /usr/local/bin/ship-logs-to-s3.sh
 chmod 750 /usr/local/bin/ship-logs-to-s3.sh
 
 cat > /etc/environment.hap <<EOF
-SOC_LOG_BUCKET=${SOC_LOG_BUCKET:-hap-soc-log-s3}
-HAP_LOG_ROLE=db
+export SOC_LOG_BUCKET=${SOC_LOG_BUCKET:-hap-soc-log-s3}
+export HAP_LOG_ROLE=db
 EOF
 
 cat > /etc/cron.d/hap-db <<EOF
