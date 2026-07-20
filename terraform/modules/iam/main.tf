@@ -31,14 +31,25 @@ resource "aws_iam_policy" "s3_access" {
   name        = "hap-s3-access-policy"
   description = "S1 경로 A — hap-dev-01-user 직접 연결 정책 (취약 버전 전용)"
 
+  # hap-customer-data-s3는 기본 SSE-KMS(hap-data-cmk) 암호화가 강제되어 있어(s3 모듈),
+  # s3:* 만으로는 GetObject/PutObject가 AccessDenied로 막힌다. hap-onprem-web-s3-policy와
+  # 동일한 패턴으로 KMS 권한을 함께 부여한다(읽기·쓰기 모두 수행하므로 Decrypt+GenerateDataKey*).
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Sid      = "OverPermissiveS3Access"
-      Effect   = "Allow"
-      Action   = "s3:*"
-      Resource = [var.customer_data_bucket_arn, "${var.customer_data_bucket_arn}/*"]
-    }]
+    Statement = [
+      {
+        Sid      = "OverPermissiveS3Access"
+        Effect   = "Allow"
+        Action   = "s3:*"
+        Resource = [var.customer_data_bucket_arn, "${var.customer_data_bucket_arn}/*"]
+      },
+      {
+        Sid      = "Dev01KmsForS3Sse"
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt", "kms:GenerateDataKey*"]
+        Resource = [var.data_cmk_arn]
+      }
+    ]
   })
 
   tags = { Name = "hap-s3-access-policy" }
@@ -94,14 +105,24 @@ resource "aws_iam_policy" "s3_readonly" {
   name        = "hap-s3-readonly-policy"
   description = "S1 경로 B — hap-s3-readonly-role에 연결되는 S3 읽기 전용 권한"
 
+  # hap-customer-data-s3는 기본 SSE-KMS(hap-data-cmk) 암호화가 강제되어 있어, GetObject가
+  # 성공하려면 kms:Decrypt가 필요하다(읽기 전용이므로 GenerateDataKey*는 불필요).
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Sid      = "S3ReadOnlyViaAssumedRole"
-      Effect   = "Allow"
-      Action   = ["s3:GetObject", "s3:ListBucket"]
-      Resource = [var.customer_data_bucket_arn, "${var.customer_data_bucket_arn}/*"]
-    }]
+    Statement = [
+      {
+        Sid      = "S3ReadOnlyViaAssumedRole"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:ListBucket"]
+        Resource = [var.customer_data_bucket_arn, "${var.customer_data_bucket_arn}/*"]
+      },
+      {
+        Sid      = "S3ReadonlyKmsForS3Sse"
+        Effect   = "Allow"
+        Action   = "kms:Decrypt"
+        Resource = [var.data_cmk_arn]
+      }
+    ]
   })
 
   tags = { Name = "hap-s3-readonly-policy" }
