@@ -1,194 +1,150 @@
-\# Backend1 Neo4j Graph DB 설계 및 Cypher 기반 공격 경로 탐색
-
-
-
-\## 1. 담당 범위
-
-
-
-Backend1은 하이브리드 공격 경로 탐색 시스템에서 그래프 DB 설계와 공격 경로 탐색 로직을 담당한다.
-
-
-
-담당 범위는 다음과 같다.
-
-
-
-\- Neo4j 기반 그래프 데이터 모델 설계
-
-\- 하이브리드 인프라 자산의 노드 및 관계 정의
-
-\- 대표 침해 시나리오 기반 seed 데이터 구성
-
-\- Cypher 기반 공격 경로 탐색 쿼리 작성
-
-\- 탐색 결과 검증
-
-
-
-본 단계에서는 FastAPI 연동이나 프론트엔드 시각화 구현은 포함하지 않고, Neo4j 내부에서 공격 경로가 실제로 탐색되는지 검증하는 것을 목표로 한다.
-
-
-
-\---
-
-
-
-\## 2. 그래프 모델링 방향
-
-
-
-본 시스템은 클라우드, Kubernetes, IAM, 데이터 저장소 자산을 그래프 구조로 모델링한다.
-
-
-
-일반적인 자산 목록 방식은 개별 자산의 존재 여부만 확인할 수 있지만, 그래프 기반 모델은 자산 간 연결 관계와 권한 흐름을 함께 표현할 수 있다.
-
-
-
-따라서 공격자가 외부 진입점에서 시작해 어떤 네트워크 경로, 권한 경로, 데이터 접근 경로를 통해 중요 자산까지 도달할 수 있는지 분석할 수 있다.
-
-
-
-본 MVP에서는 다음 세 가지 흐름을 중심으로 그래프를 구성하였다.
-
-
-
-1\. 네트워크 노출 경로
-
-2\. Kubernetes ServiceAccount 기반 권한 경로
-
-3\. AWS IAM Policy 기반 민감 데이터 접근 경로
-
-
-
-\---
-
-
-
-\## 3. 주요 노드 타입
-
-
-
-| Node Type | 설명 |
-
-|---|---|
-
-| Internet | 외부 공격자 또는 외부 접근 지점 |
-
-| VPC | 클라우드 네트워크 단위 |
-
-| Subnet | Public/Private 서브넷 |
-
-| ALB | 외부 트래픽 진입점 |
-
-| EKSCluster | Kubernetes 클러스터 |
-
-| Pod | 애플리케이션 실행 단위 |
-
-| ServiceAccount | Pod가 사용하는 Kubernetes 권한 주체 |
-
-| IAMRole | AWS 권한 위임 역할 |
-
-| IAMPolicy | IAM Role에 연결된 권한 정책 |
-
-| S3Bucket | 객체 저장소 |
-
-| RDS | 관계형 데이터베이스 |
-
-| Redis | 캐시 저장소 |
-
-| SecretsManager | 민감정보 저장소 |
-
-| KMSKey | 암호화 키 |
-
-| ECRRepository | 컨테이너 이미지 저장소 |
-
-| CloudWatchLog | 로그 저장소 |
-
-| Finding | 취약점 또는 보안 설정 오류 |
-
-
-
-\---
-
-
-
-\## 4. 주요 관계 타입
-
-
-
-| Relation Type | 설명 |
-
-|---|---|
-
-| CONTAINS | 상위 자산이 하위 자산을 포함 |
-
-| EXPOSED\_TO\_INTERNET | 인터넷에서 접근 가능한 자산 |
-
-| CAN\_MOVE\_TO | 공격자가 이동 가능한 경로 |
-
-| RUNS\_ON | Pod가 EKSCluster에서 실행됨 |
-
-| USES\_SERVICE\_ACCOUNT | Pod가 ServiceAccount를 사용 |
-
-| ASSUMES\_ROLE | ServiceAccount가 IAM Role을 Assume |
-
-| HAS\_POLICY | IAM Role에 IAM Policy가 연결됨 |
-
-| CAN\_READ | 특정 자산에 대한 읽기 권한 존재 |
-
-| CAN\_ACCESS\_SECRET | Secrets Manager Secret 조회 가능 |
-
-| ENCRYPTED\_BY | KMS Key로 암호화됨 |
-
-| PULLS\_IMAGE\_FROM | 컨테이너 이미지를 ECR에서 가져옴 |
-
-| LOGS\_TO | 로그를 CloudWatch로 전송 |
-
-| HAS\_FINDING | 자산에 취약점 또는 설정 오류 존재 |
-
-
-
-\---
-
-
-
-\## 5. 공격 경로 탐색 대상 관계
-
-
-
-공격 경로 탐색 시 모든 관계를 따라가지 않고, 공격 가능성을 의미하는 관계만 필터링한다.
-
-
-
-탐색 대상 관계는 다음과 같다.
-
-
-
-```cypher
-
-\[
-
-&#x20; "EXPOSED\_TO\_INTERNET",
-
-&#x20; "ALLOWS\_TRAFFIC",
-
-&#x20; "CAN\_MOVE\_TO",
-
-&#x20; "USES\_SERVICE\_ACCOUNT",
-
-&#x20; "ASSUMES\_ROLE",
-
-&#x20; "HAS\_POLICY",
-
-&#x20; "GRANTS\_PERMISSION",
-
-&#x20; "CAN\_READ",
-
-&#x20; "CAN\_WRITE",
-
-&#x20; "CAN\_ACCESS\_SECRET"
-
-]
-
+# Backend1 Neo4j Design
+
+Backend1 represents hybrid infrastructure, IAM permissions, credentials, and
+runtime event evidence in Neo4j. The MVP keeps the graph small but executable:
+every documented attack path is backed by `scripts/seed.cypher` and queryable
+with `scripts/attack-path-queries.cypher`.
+
+## Infrastructure Baseline
+
+The graph follows the latest infra1 baseline inspected from
+`origin/feature/infra1-terraform-base`.
+
+| Resource | Graph ID |
+| --- | --- |
+| Prod ALB | `hap-prod-alb` |
+| EKS cluster | `hap-eks` |
+| Gitea Pod | `pod-gitea-app` |
+| ServiceAccount | `gitea-sa` |
+| IRSA role | `hap-irsa-gitea-role` |
+| IRSA policy | `hap-gitea-role-policy` |
+| Mounted DB Secret | `gitea-db-credentials` |
+| AWS secret backing value | `hap-db-secret` stored as `awsSecretName` |
+| RDS | `hap-gitea-db` |
+| Customer S3 | `hap-customer-data-s3` |
+| Audit/log S3 | `hap-soc-log-s3` |
+| ALB/Config log S3 | `hap-soc-alb-log-s3` |
+| Customer-data KMS | `hap-data-cmk` |
+| SOC log KMS | `hap-log-cmk` |
+| Prod secret KMS | `hap-prod-secrets-cmk` |
+| Prod RDS KMS | `hap-prod-rds-cmk` |
+
+Deprecated cache, VPN, management, legacy ALB, legacy DB Secret, legacy On-Prem
+access key, old EKS version, and old PostgreSQL label resources are
+intentionally excluded.
+
+## Node Labels
+
+| Label | Purpose |
+| --- | --- |
+| `Internet` | External origin for public attack paths |
+| `VPC`, `Subnet` | AWS network grouping |
+| `ALB` | Public application load balancer, `HTTP/80` |
+| `EKSCluster`, `Pod`, `ServiceAccount` | Kubernetes runtime and identity |
+| `IAMUser`, `IAMRole`, `IAMPolicy` | AWS identity and permission structure |
+| `Credential`, `IAMAccessKey` | Access keys and credential-like material |
+| `S3Bucket`, `LogPrefix` | Data/log buckets and configured prefixes |
+| `RDS`, `SecretsManager`, `KMSKey` | Data stores, secrets, and encryption keys |
+| `Scenario`, `Finding`, `Event` | Analysis metadata and detection evidence |
+
+## Relationship Types
+
+| Type | Meaning |
+| --- | --- |
+| `CONTAINS` | Parent infrastructure contains a child resource |
+| `EXPOSED_TO_INTERNET` | Public entry point exists |
+| `ALLOWS_TRAFFIC` | Network flow is allowed |
+| `CAN_MOVE_TO` | Attack movement is feasible |
+| `CONNECTS_TO` | Runtime/application connection |
+| `RUNS_ON` | Pod runs on EKS |
+| `USES_SERVICE_ACCOUNT` | Pod uses a Kubernetes ServiceAccount |
+| `IRSA_LINKED_TO` | ServiceAccount can assume an IAM role via IRSA |
+| `HAS_CREDENTIAL` | Identity or host stores/owns a credential |
+| `AUTHENTICATES_AS` | Credential authenticates as an IAM identity |
+| `ASSUMES_ROLE` | IAM identity can assume a role |
+| `HAS_PERMISSION` | Identity, role, or credential is associated with a policy |
+| `CAN_ACCESS` | Policy grants access to a target resource or KMS key |
+| `ENCRYPTED_BY` | Resource is encrypted with a KMS key |
+| `LOGS_TO`, `HAS_LOG_PREFIX` | Log delivery destination and prefix |
+| `MATCHES_SCENARIO` | Event evidence is associated with a scenario |
+
+## Attack Path Model
+
+### S1-A
+
+`hap-dev-01-access-key` authenticates as `hap-dev-01-user`, which has direct
+`hap-s3-access-policy` access to `hap-customer-data-s3`. The policy also has
+`kms:Decrypt` access to `hap-data-cmk` because the bucket is SSE-KMS encrypted.
+
+### S1-B
+
+`hap-dev-01-access-key` authenticates as `hap-dev-01-user`, the user assumes
+`hap-s3-readonly-role`, and `hap-s3-readonly-policy` grants customer S3 read
+access plus required KMS decrypt capability.
+
+### S2
+
+`internet` reaches `hap-prod-alb` on `HTTP/80`; the ALB can move to
+`pod-gitea-app`; the Pod connects to `hap-gitea-db`.
+
+### S3
+
+`hap-onprem-web` has `hap-onprem-web-key`. The key/policy can write only:
+
+| Bucket | Prefix | Permission |
+| --- | --- | --- |
+| `hap-customer-data-s3` | `wordpress-files/` | `s3:PutObject` |
+| `hap-customer-data-s3` | `wordpress-db/` | `s3:PutObject` |
+| `hap-soc-log-s3` | `onprem/` | `s3:PutObject` |
+
+`hap-onprem-web-key` authenticates as `hap-onprem-web-user`, not
+`hap-dev-01-user`.
+
+`hap-onprem-db` has `hap-onprem-db-key`, but that key is log-only through
+`hap-onprem-db-s3-policy` and has no path to `hap-customer-data-s3`.
+
+### S4
+
+`pod-gitea-app` uses `gitea-sa`; IRSA links the ServiceAccount to
+`hap-irsa-gitea-role`; `hap-gitea-role-policy` grants
+`secretsmanager:GetSecretValue` on `gitea-db-credentials` and `kms:Decrypt` on
+`hap-prod-secrets-cmk`; the Secret connects to `hap-gitea-db`.
+
+## Detection Event Model
+
+`scripts/detection-rules.cypher` assumes `Event` nodes with these common
+properties:
+
+```text
+event_id, event_time, source_type, log_type, actor_id, actor_type, source_ip,
+action, source_asset_id, target_asset_id, result, severity_hint, raw_log_ref,
+access_key_id, credential_id, request_id, session_id, role_arn, service_account,
+pod_id, secret_arn, kms_key_id, bucket_name, object_key, resource_prefix,
+database_user, attributes
+```
+
+The minimal evidence relationships are:
+
+```text
+Event -[:PERFORMED_BY]-> Identity
+Event -[:ORIGINATED_FROM]-> Asset
+Event -[:TARGETED]-> Asset
+Event -[:USES_CREDENTIAL]-> Credential
+Event -[:MATCHES_SCENARIO]-> Scenario
+```
+
+Current detection rules cover:
+
+| Rule | Scenario |
+| --- | --- |
+| R1 | S2 abnormal ALB/Pod/RDS chain |
+| R2 | S3 On-Prem web key writing customer S3 backup prefixes |
+| R3 | S3 On-Prem web key writing SOC log prefix |
+| R4 | S4 AssumeRoleWithWebIdentity, GetSecretValue, optional KMS decrypt, RDS |
+| R5 | S1-A dev-01 key direct customer S3 access |
+| R6 | S1-B dev-01 key AssumeRole then customer S3 read |
+
+Each scenario query returns the common detection result fields:
+`scenario_id`, `scenario_name`, `severity`, `first_event_time`,
+`last_event_time`, `evidence_count`, `event_ids`, `source_asset_id`,
+`target_asset_id`, `credential_id`, `actor_id`, and `graph_node_ids`.
