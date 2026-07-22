@@ -76,11 +76,11 @@ export default function LogsPage() {
   if (loading || !user) return null;
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-6">
+    <main className="min-h-screen bg-slate-950 p-6 text-slate-100">
       <AppHeader title="감사 로그" />
 
       {forbidden ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
           이 화면은 ADMIN 권한만 조회할 수 있습니다. 현재 계정({user.role})으로는 접근이
           거부되었습니다 (403). 역할 기반 접근 제어(RBAC)가 정상 동작하는 것을 보여주는
           화면입니다.
@@ -94,7 +94,7 @@ export default function LogsPage() {
                 setPage(1);
                 setAction(e.target.value);
               }}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+              className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-sm text-slate-200"
             >
               <option value="">전체 액션</option>
               {ACTIONS.map((a) => (
@@ -112,21 +112,25 @@ export default function LogsPage() {
                 setPage(1);
                 setUserId(e.target.value);
               }}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm"
+              className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-sm text-slate-200 placeholder:text-slate-600"
             />
 
             {data && (
-              <span className="text-xs text-neutral-500">
+              <span className="text-xs text-slate-500">
                 총 {data.meta.totalItems}건 · {data.meta.page}/{data.meta.totalPages} 페이지
               </span>
             )}
           </div>
 
-          {error && <p className="mb-3 text-sm text-amber-600">{error}</p>}
+          {error && (
+            <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
+              {error}
+            </p>
+          )}
 
-          <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40">
             <table className="w-full text-left text-sm">
-              <thead className="bg-neutral-100 text-neutral-600">
+              <thead className="bg-slate-900/80 text-slate-400">
                 <tr>
                   <th className="px-4 py-2 font-medium">시각</th>
                   <th className="px-4 py-2 font-medium">사용자</th>
@@ -137,19 +141,19 @@ export default function LogsPage() {
               </thead>
               <tbody>
                 {data?.items.map((log) => (
-                  <tr key={log.id} className="border-t border-neutral-100">
-                    <td className="px-4 py-2 text-xs text-neutral-500">
+                  <tr key={log.id} className="border-t border-slate-800/80 hover:bg-slate-800/30">
+                    <td className="px-4 py-2 text-xs text-slate-500">
                       {new Date(log.createdAt).toLocaleString('ko-KR')}
                     </td>
-                    <td className="px-4 py-2">{log.userEmail}</td>
-                    <td className="px-4 py-2">{log.action}</td>
-                    <td className="px-4 py-2 text-xs">{log.targetResource}</td>
-                    <td className="px-4 py-2 font-mono text-xs">{log.ipAddress}</td>
+                    <td className="px-4 py-2 text-slate-200">{log.userEmail}</td>
+                    <td className="px-4 py-2 text-slate-300">{log.action}</td>
+                    <td className="px-4 py-2 text-xs text-slate-400">{log.targetResource}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-slate-400">{log.ipAddress}</td>
                   </tr>
                 ))}
                 {data && data.items.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-neutral-400">
+                    <td colSpan={5} className="px-4 py-6 text-center text-slate-600">
                       조건에 맞는 로그가 없습니다.
                     </td>
                   </tr>
@@ -163,17 +167,17 @@ export default function LogsPage() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded-md border border-neutral-300 px-3 py-1 text-sm disabled:opacity-40"
+                className="rounded-md border border-slate-700 px-3 py-1 text-sm text-slate-300 disabled:opacity-40"
               >
                 이전
               </button>
-              <span className="text-sm text-neutral-500">
+              <span className="text-sm text-slate-500">
                 {data.meta.page} / {data.meta.totalPages}
               </span>
               <button
                 disabled={page >= data.meta.totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="rounded-md border border-neutral-300 px-3 py-1 text-sm disabled:opacity-40"
+                className="rounded-md border border-slate-700 px-3 py-1 text-sm text-slate-300 disabled:opacity-40"
               >
                 다음
               </button>

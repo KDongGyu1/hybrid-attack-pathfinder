@@ -14,8 +14,8 @@ export default function Home() {
   }, [loading, user, router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <p className="text-sm text-neutral-500">불러오는 중...</p>
+    <main className="flex min-h-screen items-center justify-center bg-slate-950">
+      <p className="text-sm text-slate-500">불러오는 중...</p>
     </main>
   );
 }

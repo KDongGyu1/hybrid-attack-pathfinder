@@ -2,16 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 시스템 다크/라이트 설정과 무관하게 대시보드형 다크 테마를 앱 자체 톤으로 고정 */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #0b0f19;
+  --foreground: #e2e8f0;
 }
 
 body {
@@ -24,4 +18,19 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3346;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #38435c;
 }
