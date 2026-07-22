@@ -26,6 +26,16 @@
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api/v1
 ```
 
+### 배포(프로덕션) 환경
+
+`.env.production`에 실제 SOC 대시보드 도메인이 설정되어 있다 (2026-07-22 확정):
+
+```
+NEXT_PUBLIC_API_BASE_URL=https://hap-soc.kro.kr/api/v1
+```
+
+`NEXT_PUBLIC_*` 값은 `next build` 시점에 번들에 고정되므로, 배포 서버(`hap-soc-api`)에서 빌드를 실행하기 전에 `.env.production`이 이미 존재해야 한다. 로컬 `npm run dev`는 `.env.local`만 보고 이 파일의 영향을 받지 않는다.
+
 ## 설치 및 실행
 
 ```bash
