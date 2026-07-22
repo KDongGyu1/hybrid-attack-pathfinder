@@ -11,7 +11,7 @@ except ModuleNotFoundError:
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password1234")
 
 
 SEVERITY_WEIGHTS = {
@@ -338,6 +338,9 @@ def node_to_dict(node: Any) -> Dict[str, Any]:
         "sensitivityLevel": node.get("sensitivityLevel"),
         "riskLevel": node.get("riskLevel"),
         "sensitive": node.get("sensitive"),
+        "namespace": node.get("namespace"),
+        "irsaSubject": node.get("irsaSubject"),
+        "trustedSubject": node.get("trustedSubject"),
     }
 
 
@@ -350,6 +353,7 @@ def relationship_to_dict(rel: Any) -> Dict[str, Any]:
         "action": rel.get("action"),
         "resourcePrefix": rel.get("resourcePrefix"),
         "permissionLevel": rel.get("permissionLevel"),
+        "subject": rel.get("subject"),
     }
 
 

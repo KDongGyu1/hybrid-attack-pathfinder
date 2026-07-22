@@ -17,6 +17,9 @@ def make_node_element(node: Dict[str, Any]) -> Dict[str, Any]:
             "assetRole": node.get("assetRole"),
             "sensitivityLevel": node.get("sensitivityLevel"),
             "riskLevel": node.get("riskLevel"),
+            "namespace": node.get("namespace"),
+            "irsaSubject": node.get("irsaSubject"),
+            "trustedSubject": node.get("trustedSubject"),
         }
     }
 
@@ -30,6 +33,7 @@ def make_edge_element(edge: Dict[str, Any]) -> Dict[str, Any]:
             "label": edge.get("type"),
             "type": edge.get("type"),
             "action": edge.get("action"),
+            "subject": edge.get("subject"),
         }
     }
 

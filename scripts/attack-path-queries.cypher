@@ -156,6 +156,7 @@ WHERE n.id IN [
   "gitea-sa",
   "hap-irsa-gitea-role",
   "hap-gitea-role-policy",
+  "hap-ecr",
   "gitea-db-credentials",
   "hap-gitea-db",
   "hap-dev-01-access-key",
@@ -180,7 +181,12 @@ WHERE n.id IN [
   "hap-prod-secrets-cmk",
   "hap-prod-rds-cmk"
 ]
-RETURN n.id AS id, labels(n) AS labels, n.name AS name
+RETURN
+  n.id AS id,
+  labels(n) AS labels,
+  n.name AS name,
+  n.namespace AS namespace,
+  coalesce(n.irsaSubject, n.trustedSubject) AS irsa_subject
 ORDER BY id;
 
 // Q10. Relationship inventory.
@@ -218,17 +224,28 @@ WHERE toLower(coalesce(n.id, "")) CONTAINS ("red" + "is")
    OR n.id = ("hap-public" + "-web-alb")
 RETURN n;
 
-// Q15. Final ALB, EKS, Secret, and Config location validation.
+// Q15. Final ALB, EKS, Secret, Config, namespace, IRSA subject, and ECR validation.
 MATCH (alb:ALB {id: "hap-prod-alb"})
 MATCH (eks:EKSCluster {id: "hap-eks"})
+MATCH (pod:Pod {id: "pod-gitea-app"})
+MATCH (sa:ServiceAccount {id: "gitea-sa"})
+MATCH (sa)-[irsa:IRSA_LINKED_TO]->(role:IAMRole {id: "hap-irsa-gitea-role"})
 MATCH (secret:SecretsManager {id: "gitea-db-credentials"})
 MATCH (albBucket:S3Bucket {id: "hap-soc-alb-log-s3"})
 MATCH (albBucket)-[:HAS_LOG_PREFIX]->(config:LogPrefix {id: "hap-soc-alb-log-s3/config"})
+MATCH (pod)-[:PULLS_IMAGE_FROM]->(ecr:ECRRepository {id: "hap-ecr"})
+WHERE irsa.subject = "system:serviceaccount:prod:gitea-sa"
+  AND role.trustedSubject = "system:serviceaccount:prod:gitea-sa"
 RETURN
   alb.id AS alb_id,
   alb.protocol AS alb_protocol,
   alb.port AS alb_port,
   eks.version AS eks_version,
+  pod.namespace AS pod_namespace,
+  sa.namespace AS service_account_namespace,
+  irsa.subject AS irsa_subject,
+  role.trustedSubject AS role_trusted_subject,
+  ecr.id AS ecr_id,
   secret.id AS secret_id,
   secret.awsSecretName AS aws_secret_name,
   albBucket.id + "/" + config.prefix AS config_location;
@@ -250,3 +267,19 @@ ORDER BY graph_node_id, finding_id;
 MATCH (status:ScenarioStatus)
 RETURN status.id AS status_id, status.description AS description
 ORDER BY status_id;
+
+// Q18. Deployment value regression checks.
+MATCH (pod:Pod {id: "pod-gitea-app"})
+MATCH (sa:ServiceAccount {id: "gitea-sa"})
+OPTIONAL MATCH (oldNamespace)
+WHERE (oldNamespace:Pod OR oldNamespace:ServiceAccount)
+  AND oldNamespace.namespace = "gitea"
+OPTIONAL MATCH (oldEcr:ECRRepository {id: "hap-gitea-ecr"})
+OPTIONAL MATCH (pod)-[pulls:PULLS_IMAGE_FROM]->(:ECRRepository {id: "hap-ecr"})
+RETURN
+  count(DISTINCT oldNamespace) AS old_namespace_node_count,
+  count(DISTINCT oldEcr) AS old_ecr_node_count,
+  count(DISTINCT pulls) AS pod_to_hap_ecr_pull_count,
+  pod.namespace AS pod_namespace,
+  sa.namespace AS service_account_namespace,
+  sa.irsaSubject AS service_account_irsa_subject;

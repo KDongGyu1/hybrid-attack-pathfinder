@@ -63,6 +63,9 @@ def make_cytoscape_elements(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                         "riskLevel": node.get("riskLevel"),
                         "sensitive": node.get("sensitive"),
                         "labels": node.get("labels"),
+                        "namespace": node.get("namespace"),
+                        "irsaSubject": node.get("irsaSubject"),
+                        "trustedSubject": node.get("trustedSubject"),
                     }
                 }
 
@@ -79,6 +82,7 @@ def make_cytoscape_elements(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                         "action": edge.get("action"),
                         "resourcePrefix": edge.get("resourcePrefix"),
                         "permissionLevel": edge.get("permissionLevel"),
+                        "subject": edge.get("subject"),
                     }
                 }
 

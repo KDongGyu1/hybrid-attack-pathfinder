@@ -15,9 +15,13 @@ The graph follows the latest infra1 baseline inspected from
 | Prod ALB | `hap-prod-alb` |
 | EKS cluster | `hap-eks` |
 | Gitea Pod | `pod-gitea-app` |
+| Gitea Pod namespace | `prod` |
 | ServiceAccount | `gitea-sa` |
+| ServiceAccount namespace | `prod` |
+| IRSA subject | `system:serviceaccount:prod:gitea-sa` |
 | IRSA role | `hap-irsa-gitea-role` |
 | IRSA policy | `hap-gitea-role-policy` |
+| ECR repository | `hap-ecr` |
 | Mounted DB Secret | `gitea-db-credentials` |
 | AWS secret backing value | `hap-db-secret` stored as `awsSecretName` |
 | RDS | `hap-gitea-db` |
@@ -86,7 +90,8 @@ access plus required KMS decrypt capability.
 ### S2
 
 `internet` reaches `hap-prod-alb` on `HTTP/80`; the ALB can move to
-`pod-gitea-app`; the Pod connects to `hap-gitea-db`.
+`pod-gitea-app`; the Pod runs in Kubernetes namespace `prod`, pulls its image
+from `hap-ecr`, and connects to `hap-gitea-db`.
 
 ### S3
 
@@ -106,8 +111,9 @@ access plus required KMS decrypt capability.
 
 ### S4
 
-`pod-gitea-app` uses `gitea-sa`; IRSA links the ServiceAccount to
-`hap-irsa-gitea-role`; `hap-gitea-role-policy` grants
+`pod-gitea-app` uses `gitea-sa` in namespace `prod`; IRSA links the
+ServiceAccount to `hap-irsa-gitea-role` with subject
+`system:serviceaccount:prod:gitea-sa`; `hap-gitea-role-policy` grants
 `secretsmanager:GetSecretValue` on `gitea-db-credentials` and `kms:Decrypt` on
 `hap-prod-secrets-cmk`; the Secret connects to `hap-gitea-db`.
 

@@ -62,13 +62,14 @@ SET eks.name = "hap-eks",
 MERGE (pod:Pod {id: "pod-gitea-app"})
 SET pod.name = "pod-gitea-app",
     pod.displayName = "Gitea application Pod",
-    pod.namespace = "gitea",
+    pod.namespace = "prod",
     pod.workload = "gitea";
 
 MERGE (sa:ServiceAccount {id: "gitea-sa"})
 SET sa.name = "gitea-sa",
     sa.displayName = "gitea-sa",
-    sa.namespace = "gitea";
+    sa.namespace = "prod",
+    sa.irsaSubject = "system:serviceaccount:prod:gitea-sa";
 
 MERGE (rds:RDS {id: "hap-gitea-db"})
 SET rds.name = "hap-gitea-db",
@@ -149,8 +150,8 @@ SET secret.name = "gitea-db-credentials",
     secret.kmsKeyId = "hap-prod-secrets-cmk",
     secret.sensitive = true;
 
-MERGE (ecr:ECRRepository {id: "hap-gitea-ecr"})
-SET ecr.name = "hap-gitea-ecr",
+MERGE (ecr:ECRRepository {id: "hap-ecr"})
+SET ecr.name = "hap-ecr",
     ecr.provider = "AWS";
 
 MERGE (cw:CloudWatchLog {id: "hap-gitea-cloudwatch-log"})
@@ -189,7 +190,8 @@ SET s3ReadonlyPolicy.name = "hap-s3-readonly-policy",
 
 MERGE (irsaRole:IAMRole {id: "hap-irsa-gitea-role"})
 SET irsaRole.name = "hap-irsa-gitea-role",
-    irsaRole.provider = "AWS";
+    irsaRole.provider = "AWS",
+    irsaRole.trustedSubject = "system:serviceaccount:prod:gitea-sa";
 
 MERGE (giteaRolePolicy:IAMPolicy {id: "hap-gitea-role-policy"})
 SET giteaRolePolicy.name = "hap-gitea-role-policy",
@@ -300,7 +302,7 @@ MERGE (pod)-[:CONNECTS_TO {
   description: "Gitea Pod connects to RDS"
 }]->(rds);
 
-MATCH (pod:Pod {id: "pod-gitea-app"}), (ecr:ECRRepository {id: "hap-gitea-ecr"})
+MATCH (pod:Pod {id: "pod-gitea-app"}), (ecr:ECRRepository {id: "hap-ecr"})
 MERGE (pod)-[:PULLS_IMAGE_FROM]->(ecr);
 
 MATCH (pod:Pod {id: "pod-gitea-app"}), (cw:CloudWatchLog {id: "hap-gitea-cloudwatch-log"})
@@ -464,7 +466,8 @@ MERGE (pod)-[:USES_SERVICE_ACCOUNT]->(sa);
 
 MATCH (sa:ServiceAccount {id: "gitea-sa"}), (irsaRole:IAMRole {id: "hap-irsa-gitea-role"})
 MERGE (sa)-[:IRSA_LINKED_TO {
-  action: "sts:AssumeRoleWithWebIdentity"
+  action: "sts:AssumeRoleWithWebIdentity",
+  subject: "system:serviceaccount:prod:gitea-sa"
 }]->(irsaRole);
 
 MATCH (irsaRole:IAMRole {id: "hap-irsa-gitea-role"}), (giteaRolePolicy:IAMPolicy {id: "hap-gitea-role-policy"})

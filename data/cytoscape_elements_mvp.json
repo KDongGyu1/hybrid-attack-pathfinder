@@ -6,273 +6,446 @@
     "nodes": [
       {
         "data": {
-          "id": "onprem-admin-server",
-          "label": "On-Prem Admin Server",
-          "type": "ON_PREM_SERVER",
-          "environment": "ON_PREM",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "CONFIDENTIAL",
-          "riskLevel": "HIGH"
+          "id": "hap-dev-01-access-key",
+          "label": "hap-dev-01-access-key",
+          "type": "IAMAccessKey",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
         }
       },
       {
         "data": {
-          "id": "aws-access-key-dev-01",
-          "label": "Stored AWS Access Key",
-          "type": "AWS_ACCESS_KEY",
-          "environment": "ON_PREM",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "RESTRICTED",
-          "riskLevel": "CRITICAL"
+          "id": "hap-dev-01-user",
+          "label": "hap-dev-01-user",
+          "type": "IAMUser",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
         }
       },
       {
         "data": {
-          "id": "iam-user-dev-01",
-          "label": "Developer IAM User",
-          "type": "IAM_USER",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "RESTRICTED",
-          "riskLevel": "CRITICAL"
-        }
-      },
-      {
-        "data": {
-          "id": "iam-policy-prod-read",
-          "label": "Prod Read Access Policy",
-          "type": "IAM_POLICY",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "RESTRICTED",
-          "riskLevel": "CRITICAL"
+          "id": "hap-s3-access-policy",
+          "label": "hap-s3-access-policy",
+          "type": "IAMPolicy",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
         }
       },
       {
         "data": {
           "id": "hap-customer-data-s3",
-          "label": "HAP Customer Dummy Data S3",
-          "type": "S3_BUCKET",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "RESTRICTED",
-          "riskLevel": "CRITICAL"
+          "label": "Customer data S3",
+          "type": "S3Bucket",
+          "environment": "prod",
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
         }
       },
       {
         "data": {
-          "id": "eks-pod-gitea",
-          "label": "Gitea EKS Pod",
-          "type": "EKS_POD",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "CONFIDENTIAL",
-          "riskLevel": "HIGH"
+          "id": "hap-s3-readonly-role",
+          "label": "hap-s3-readonly-role",
+          "type": "IAMRole",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
         }
       },
       {
         "data": {
-          "id": "k8s-sa-gitea",
-          "label": "Gitea ServiceAccount",
-          "type": "SERVICE_ACCOUNT",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "CONFIDENTIAL",
-          "riskLevel": "HIGH"
-        }
-      },
-      {
-        "data": {
-          "id": "irsa-gitea-role",
-          "label": "IRSA Gitea IAM Role",
-          "type": "IAM_ROLE",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "RESTRICTED",
-          "riskLevel": "CRITICAL"
-        }
-      },
-      {
-        "data": {
-          "id": "iam-policy-gitea-secrets-access",
-          "label": "Gitea Secrets Access Policy",
-          "type": "IAM_POLICY",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "RESTRICTED",
-          "riskLevel": "CRITICAL"
-        }
-      },
-      {
-        "data": {
-          "id": "secret-gitea-db-password",
-          "label": "Gitea DB Password Secret",
-          "type": "SECRETS_MANAGER",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "RESTRICTED",
-          "riskLevel": "CRITICAL"
-        }
-      },
-      {
-        "data": {
-          "id": "rds-postgres-prod",
-          "label": "RDS PostgreSQL",
-          "type": "RDS_POSTGRESQL",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "RESTRICTED",
-          "riskLevel": "CRITICAL"
+          "id": "hap-s3-readonly-policy",
+          "label": "hap-s3-readonly-policy",
+          "type": "IAMPolicy",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
         }
       },
       {
         "data": {
           "id": "internet",
-          "label": "Internet",
-          "type": "INTERNET",
-          "environment": "EXTERNAL",
-          "assetRole": "EXTERNAL",
-          "sensitivityLevel": "PUBLIC",
-          "riskLevel": "HIGH"
+          "label": "External attacker / Internet",
+          "type": "Internet",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
         }
       },
       {
         "data": {
-          "id": "app-gitea",
-          "label": "Gitea Application",
-          "type": "GITEA_APP",
-          "environment": "PROD",
-          "assetRole": "TARGET",
-          "sensitivityLevel": "CONFIDENTIAL",
-          "riskLevel": "HIGH"
+          "id": "hap-prod-alb",
+          "label": "Prod ALB",
+          "type": "ALB",
+          "environment": "prod",
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      },
+      {
+        "data": {
+          "id": "pod-gitea-app",
+          "label": "Gitea application Pod",
+          "type": "Pod",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": "prod",
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      },
+      {
+        "data": {
+          "id": "hap-gitea-db",
+          "label": "Gitea RDS PostgreSQL",
+          "type": "RDS",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      },
+      {
+        "data": {
+          "id": "hap-onprem-web",
+          "label": "On-Prem WordPress web server",
+          "type": "OnPremWeb",
+          "environment": "on-prem",
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      },
+      {
+        "data": {
+          "id": "hap-onprem-web-key",
+          "label": "hap-onprem-web-key",
+          "type": "IAMAccessKey",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      },
+      {
+        "data": {
+          "id": "hap-onprem-web-s3-policy",
+          "label": "hap-onprem-web-s3-policy",
+          "type": "IAMPolicy",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      },
+      {
+        "data": {
+          "id": "gitea-sa",
+          "label": "gitea-sa",
+          "type": "ServiceAccount",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": "prod",
+          "irsaSubject": "system:serviceaccount:prod:gitea-sa",
+          "trustedSubject": null
+        }
+      },
+      {
+        "data": {
+          "id": "hap-irsa-gitea-role",
+          "label": "hap-irsa-gitea-role",
+          "type": "IAMRole",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": "system:serviceaccount:prod:gitea-sa"
+        }
+      },
+      {
+        "data": {
+          "id": "hap-gitea-role-policy",
+          "label": "hap-gitea-role-policy",
+          "type": "IAMPolicy",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      },
+      {
+        "data": {
+          "id": "gitea-db-credentials",
+          "label": "Gitea DB credentials mounted by CSI",
+          "type": "SecretsManager",
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
         }
       }
     ],
     "edges": [
       {
         "data": {
-          "id": "rel-onprem-stores-access-key",
-          "source": "onprem-admin-server",
-          "target": "aws-access-key-dev-01",
-          "label": "STORES_CREDENTIAL",
-          "type": "STORES_CREDENTIAL",
-          "action": null
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:16",
+          "source": "hap-dev-01-access-key",
+          "target": "hap-dev-01-user",
+          "label": "AUTHENTICATES_AS",
+          "type": "AUTHENTICATES_AS",
+          "action": null,
+          "subject": null
         }
       },
       {
         "data": {
-          "id": "rel-key-belongs-iam-user",
-          "source": "aws-access-key-dev-01",
-          "target": "iam-user-dev-01",
-          "label": "BELONGS_TO",
-          "type": "BELONGS_TO",
-          "action": null
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:17",
+          "source": "hap-dev-01-user",
+          "target": "hap-s3-access-policy",
+          "label": "HAS_PERMISSION",
+          "type": "HAS_PERMISSION",
+          "action": null,
+          "subject": null
         }
       },
       {
         "data": {
-          "id": "rel-user-has-prod-read-policy",
-          "source": "iam-user-dev-01",
-          "target": "iam-policy-prod-read",
-          "label": "HAS_POLICY",
-          "type": "HAS_POLICY",
-          "action": null
-        }
-      },
-      {
-        "data": {
-          "id": "rel-policy-can-read-customer-s3",
-          "source": "iam-policy-prod-read",
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:18",
+          "source": "hap-s3-access-policy",
           "target": "hap-customer-data-s3",
+          "label": "CAN_ACCESS",
+          "type": "CAN_ACCESS",
+          "action": "s3:*",
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:20",
+          "source": "hap-dev-01-user",
+          "target": "hap-s3-readonly-role",
+          "label": "ASSUMES_ROLE",
+          "type": "ASSUMES_ROLE",
+          "action": "sts:AssumeRole",
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:21",
+          "source": "hap-s3-readonly-role",
+          "target": "hap-s3-readonly-policy",
           "label": "HAS_PERMISSION",
           "type": "HAS_PERMISSION",
-          "action": "s3:GetObject"
+          "action": null,
+          "subject": null
         }
       },
       {
         "data": {
-          "id": "rel-pod-uses-sa",
-          "source": "eks-pod-gitea",
-          "target": "k8s-sa-gitea",
-          "label": "USES_SERVICE_ACCOUNT",
-          "type": "USES_SERVICE_ACCOUNT",
-          "action": null
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:22",
+          "source": "hap-s3-readonly-policy",
+          "target": "hap-customer-data-s3",
+          "label": "CAN_ACCESS",
+          "type": "CAN_ACCESS",
+          "action": "s3:ListBucket,s3:GetObject",
+          "subject": null
         }
       },
       {
         "data": {
-          "id": "rel-sa-irsa-role",
-          "source": "k8s-sa-gitea",
-          "target": "irsa-gitea-role",
-          "label": "IRSA_LINKED_TO",
-          "type": "IRSA_LINKED_TO",
-          "action": null
-        }
-      },
-      {
-        "data": {
-          "id": "rel-role-has-secrets-policy",
-          "source": "irsa-gitea-role",
-          "target": "iam-policy-gitea-secrets-access",
-          "label": "HAS_POLICY",
-          "type": "HAS_POLICY",
-          "action": null
-        }
-      },
-      {
-        "data": {
-          "id": "rel-policy-can-read-secret",
-          "source": "iam-policy-gitea-secrets-access",
-          "target": "secret-gitea-db-password",
-          "label": "HAS_PERMISSION",
-          "type": "HAS_PERMISSION",
-          "action": "secretsmanager:GetSecretValue"
-        }
-      },
-      {
-        "data": {
-          "id": "rel-secret-for-rds",
-          "source": "secret-gitea-db-password",
-          "target": "rds-postgres-prod",
-          "label": "STORES_CREDENTIAL_FOR",
-          "type": "STORES_CREDENTIAL_FOR",
-          "action": null
-        }
-      },
-      {
-        "data": {
-          "id": "rel-internet-gitea",
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:8",
           "source": "internet",
-          "target": "app-gitea",
+          "target": "hap-prod-alb",
           "label": "EXPOSED_TO_INTERNET",
           "type": "EXPOSED_TO_INTERNET",
-          "action": null
+          "action": null,
+          "subject": null
         }
       },
       {
         "data": {
-          "id": "rel-gitea-rds",
-          "source": "app-gitea",
-          "target": "rds-postgres-prod",
-          "label": "CONNECTS_TO_DB",
-          "type": "CONNECTS_TO_DB",
-          "action": null
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:10",
+          "source": "hap-prod-alb",
+          "target": "pod-gitea-app",
+          "label": "CAN_MOVE_TO",
+          "type": "CAN_MOVE_TO",
+          "action": null,
+          "subject": null
         }
       },
       {
         "data": {
-          "id": "rel-policy-can-read-gitea-secret",
-          "source": "iam-policy-prod-read",
-          "target": "secret-gitea-db-password",
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:12",
+          "source": "pod-gitea-app",
+          "target": "hap-gitea-db",
+          "label": "CONNECTS_TO",
+          "type": "CONNECTS_TO",
+          "action": null,
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:24",
+          "source": "hap-onprem-web",
+          "target": "hap-onprem-web-key",
+          "label": "HAS_CREDENTIAL",
+          "type": "HAS_CREDENTIAL",
+          "action": null,
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:27",
+          "source": "hap-onprem-web-key",
+          "target": "hap-onprem-web-s3-policy",
           "label": "HAS_PERMISSION",
           "type": "HAS_PERMISSION",
-          "action": "secretsmanager:GetSecretValue"
+          "action": null,
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:29",
+          "source": "hap-onprem-web-s3-policy",
+          "target": "hap-customer-data-s3",
+          "label": "CAN_ACCESS",
+          "type": "CAN_ACCESS",
+          "action": "s3:PutObject",
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:28",
+          "source": "hap-onprem-web-s3-policy",
+          "target": "hap-customer-data-s3",
+          "label": "CAN_ACCESS",
+          "type": "CAN_ACCESS",
+          "action": "s3:PutObject",
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:40",
+          "source": "pod-gitea-app",
+          "target": "gitea-sa",
+          "label": "USES_SERVICE_ACCOUNT",
+          "type": "USES_SERVICE_ACCOUNT",
+          "action": null,
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:41",
+          "source": "gitea-sa",
+          "target": "hap-irsa-gitea-role",
+          "label": "IRSA_LINKED_TO",
+          "type": "IRSA_LINKED_TO",
+          "action": "sts:AssumeRoleWithWebIdentity",
+          "subject": "system:serviceaccount:prod:gitea-sa"
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:42",
+          "source": "hap-irsa-gitea-role",
+          "target": "hap-gitea-role-policy",
+          "label": "HAS_PERMISSION",
+          "type": "HAS_PERMISSION",
+          "action": null,
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:43",
+          "source": "hap-gitea-role-policy",
+          "target": "gitea-db-credentials",
+          "label": "CAN_ACCESS",
+          "type": "CAN_ACCESS",
+          "action": "secretsmanager:GetSecretValue",
+          "subject": null
+        }
+      },
+      {
+        "data": {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:45",
+          "source": "gitea-db-credentials",
+          "target": "hap-gitea-db",
+          "label": "CONNECTS_TO",
+          "type": "CONNECTS_TO",
+          "action": null,
+          "subject": null
         }
       }
     ]
   },
   "summary": {
-    "nodeCount": 13,
-    "edgeCount": 12
+    "nodeCount": 17,
+    "edgeCount": 18
   }
 }

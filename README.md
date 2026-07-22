@@ -13,9 +13,13 @@ this task.
 | Prod ALB | `hap-prod-alb` |
 | Prod ALB listener | `HTTP/80` |
 | Gitea Pod | `pod-gitea-app` |
+| Gitea Pod namespace | `prod` |
 | ServiceAccount | `gitea-sa` |
+| ServiceAccount namespace | `prod` |
+| IRSA subject | `system:serviceaccount:prod:gitea-sa` |
 | IRSA role | `hap-irsa-gitea-role` |
 | IRSA policy | `hap-gitea-role-policy` |
+| ECR repository | `hap-ecr` |
 | RDS | `hap-gitea-db`, PostgreSQL `16` |
 | K8s mounted DB Secret | `gitea-db-credentials` |
 | AWS Secrets Manager source | `hap-db-secret` |
@@ -77,6 +81,8 @@ hap-gitea-db
 ```
 
 `hap-prod-alb` uses `HTTP/80`; no TLS listener is modeled for the current graph.
+`pod-gitea-app` runs in the Kubernetes `prod` namespace and pulls its image
+from `hap-ecr`.
 
 ### S3: On-Prem WordPress key to prefix-limited S3
 
@@ -129,7 +135,8 @@ hap-gitea-db
 
 The graph uses `gitea-db-credentials` as the mounted Secret node ID and stores
 `awsSecretName: hap-db-secret` on that node to preserve the Terraform/K8s
-mapping.
+mapping. The ServiceAccount namespace is `prod`, and the IRSA trust subject is
+`system:serviceaccount:prod:gitea-sa`.
 
 ## Risk Score
 
@@ -212,21 +219,21 @@ Load the seed:
 
 ```powershell
 docker cp .\scripts\seed.cypher hybrid-neo4j:/seed.cypher
-docker exec hybrid-neo4j cypher-shell -u neo4j -p password123 -f /seed.cypher
+docker exec hybrid-neo4j cypher-shell -u neo4j -p password1234 -f /seed.cypher
 ```
 
 Run path queries:
 
 ```powershell
 docker cp .\scripts\attack-path-queries.cypher hybrid-neo4j:/attack-path-queries.cypher
-docker exec hybrid-neo4j cypher-shell -u neo4j -p password123 -f /attack-path-queries.cypher
+docker exec hybrid-neo4j cypher-shell -u neo4j -p password1234 -f /attack-path-queries.cypher
 ```
 
 Run detection rule syntax checks:
 
 ```powershell
 docker cp .\scripts\detection-rules.cypher hybrid-neo4j:/detection-rules.cypher
-docker exec hybrid-neo4j cypher-shell -u neo4j -p password123 -f /detection-rules.cypher
+docker exec hybrid-neo4j cypher-shell -u neo4j -p password1234 -f /detection-rules.cypher
 ```
 
 ## Useful Validation Queries
@@ -235,5 +242,9 @@ docker exec hybrid-neo4j cypher-shell -u neo4j -p password123 -f /detection-rule
 MATCH (n {id: "hap-prod-alb"}) RETURN n.id, n.protocol, n.port;
 MATCH (n {id: "gitea-db-credentials"}) RETURN n.id, n.awsSecretName, n.k8sSecretName;
 MATCH (n {id: "hap-eks"}) RETURN n.id, n.version;
+MATCH (n) WHERE (n:Pod OR n:ServiceAccount) AND n.namespace = "gitea" RETURN count(n);
+MATCH (n:ECRRepository {id: "hap-gitea-ecr"}) RETURN count(n);
+MATCH (:Pod {id: "pod-gitea-app"})-[r:PULLS_IMAGE_FROM]->(:ECRRepository {id: "hap-ecr"}) RETURN count(r);
+MATCH (pod:Pod {id: "pod-gitea-app"}), (sa:ServiceAccount {id: "gitea-sa"}) RETURN pod.namespace, sa.namespace, sa.irsaSubject;
 MATCH (n)-[r]->(m) RETURN type(r), count(*) ORDER BY type(r);
 ```
