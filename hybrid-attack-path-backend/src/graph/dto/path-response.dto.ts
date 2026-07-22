@@ -25,10 +25,10 @@ export class PathDto {
 }
 
 export class PathResponseDto {
-  @ApiProperty({ example: 'asset-onprem-web-01' })
+  @ApiProperty({ example: 'hap-onprem-web' })
   sourceAssetId: string;
 
-  @ApiProperty({ example: 'asset-s3-01' })
+  @ApiProperty({ example: 'hap-customer-data-s3' })
   targetAssetId: string;
 
   @ApiProperty({ type: [PathDto] })

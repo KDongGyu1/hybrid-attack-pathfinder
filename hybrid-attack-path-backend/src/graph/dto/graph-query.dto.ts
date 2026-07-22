@@ -9,7 +9,7 @@ export class GraphQueryDto {
   @IsString()
   scenarioId?: string;
 
-  @ApiPropertyOptional({ example: 'asset-rds-01' })
+  @ApiPropertyOptional({ example: 'hap-gitea-db' })
   @IsOptional()
   @IsString()
   assetId?: string;

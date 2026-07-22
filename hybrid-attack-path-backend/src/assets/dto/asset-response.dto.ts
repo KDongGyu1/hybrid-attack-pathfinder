@@ -4,10 +4,10 @@ import { Environment } from '../../common/enums/environment.enum';
 import { SensitivityLevel } from '../../common/enums/sensitivity-level.enum';
 
 export class AssetResponseDto {
-  @ApiProperty({ example: 'asset-rds-01' })
+  @ApiProperty({ example: 'hap-gitea-db' })
   id: string;
 
-  @ApiProperty({ example: 'prod-rds-postgres' })
+  @ApiProperty({ example: 'RDS (Gitea DB)' })
   name: string;
 
   @ApiProperty({ enum: AssetType })

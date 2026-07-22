@@ -135,7 +135,7 @@ src/
 
 ## 알려진 제약 / 다음 단계
 
-- `assets` 테이블의 자산 ID(`asset-s3-01` 등)와 Backend 1 그래프 노드 ID(`hap-customer-data-s3` 등)가 아직 서로 다름 — 자산 상세의 `relatedEdgeCount` 필드를 채우려면 ID 체계 통일이 필요함 (미해결)
+- (해결됨, 2026-07-22) `assets` 테이블의 자산 ID를 상범님이 직접 전달한 확정 노드 id 전체 목록 기준으로 맞춤 — `hap-onprem-web`, `hap-gitea-db`, `hap-customer-data-s3`, `pod-gitea-app`. 다만 `hybrid-attack-pathfinder`의 `cypher/01_seed_mvp.cypher` 파일 자체는 아직 이 목록으로 push되지 않은 상태(`rds-postgres-prod` 등 예전 이름으로 남아있음)라, 실제 배포/시연 전 상범님 쪽 push 여부를 다시 확인해야 함. `AssetResponseDto.relatedEdgeCount`/`relatedScenarioIds` 계산 로직 자체는 아직 미구현 (TODO)
 - `LogsService.record()` 헬퍼가 아직 어느 컨트롤러에서도 호출되지 않음 — 감사 로그 조회 API는 동작하지만 실제로 로그가 쌓이지는 않음
 - 운영 전환 시 `synchronize: true` → TypeORM 마이그레이션으로 교체 필요
 - Backend 1 엔진은 임의의 source/target 쌍 탐색을 지원하지 않고 고정된 5개 시나리오만 조회 가능 — `GET /graph/paths`는 쿼리와 일치하는 시나리오가 있을 때만 결과를 반환함

@@ -3,12 +3,12 @@ import { IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validat
 import { Type } from 'class-transformer';
 
 export class PathQueryDto {
-  @ApiProperty({ example: 'asset-onprem-web-01' })
+  @ApiProperty({ example: 'hap-onprem-web' })
   @IsString()
   @IsNotEmpty()
   sourceAssetId: string;
 
-  @ApiProperty({ example: 'asset-s3-01' })
+  @ApiProperty({ example: 'hap-customer-data-s3' })
   @IsString()
   @IsNotEmpty()
   targetAssetId: string;

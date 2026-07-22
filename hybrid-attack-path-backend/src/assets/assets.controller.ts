@@ -27,7 +27,7 @@ export class AssetsController {
 
   @Get(':id')
   @Roles(Role.VIEWER, Role.ANALYST, Role.ADMIN)
-  @ApiParam({ name: 'id', example: 'asset-rds-01' })
+  @ApiParam({ name: 'id', example: 'hap-gitea-db' })
   @ApiOperation({ summary: '자산 상세 조회', description: '특정 자산의 상세 정보 및 연관된 그래프 요약(연결된 엣지 수 등) 조회' })
   @ApiResponse({ status: 200, description: '조회 성공', type: AssetResponseDto })
   @ApiResponse({ status: 401, description: '인증 실패' })

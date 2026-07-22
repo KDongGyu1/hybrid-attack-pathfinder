@@ -3,8 +3,9 @@ import { AssetType } from '../../common/enums/asset-type.enum';
 import { Environment } from '../../common/enums/environment.enum';
 import { SensitivityLevel } from '../../common/enums/sensitivity-level.enum';
 
-// 자산 인벤토리 문서 기준 자산 테이블. id는 상범님 문서 네이밍 컨벤션을 따라
-// 카테고리 접두사가 붙은 문자열(예: asset-rds-01)을 그대로 PK로 사용한다.
+// 자산 인벤토리 문서 기준 자산 테이블. id는 Backend 1(Neo4j) 그래프 엔진이 실제로
+// 사용하는 노드 id(예: hap-gitea-db, hap-customer-data-s3)를 그대로 PK로 사용해
+// 그래프와 자산 목록 간 id 불일치가 생기지 않도록 한다.
 @Entity('assets')
 export class Asset {
   @PrimaryColumn()

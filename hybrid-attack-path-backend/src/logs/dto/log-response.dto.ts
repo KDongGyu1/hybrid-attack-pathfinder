@@ -13,7 +13,7 @@ export class LogResponseDto {
   @ApiProperty({ example: 'SEARCH_PATH' })
   action: string;
 
-  @ApiProperty({ example: 'asset-onprem-web-01 -> asset-rds-01' })
+  @ApiProperty({ example: 'hap-onprem-web -> hap-gitea-db' })
   targetResource: string;
 
   @ApiProperty({ example: '10.0.4.21' })

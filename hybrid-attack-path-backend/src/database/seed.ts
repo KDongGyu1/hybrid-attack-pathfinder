@@ -46,32 +46,48 @@ async function seed() {
     console.log(`계정 생성: ${u.email} / ${u.password} (${u.role})`);
   }
 
-  // 2) 샘플 자산 (설계 문서 예시와 동일한 id 사용)
+  // 2) 샘플 자산
+  // 2026-07-22: id를 Backend 1(Neo4j) 그래프 엔진이 실제로 서빙하는 노드 id와 동일하게 맞춤
+  // (cypher/01_seed_mvp.cypher 기준) — 이전에는 asset-rds-01 같은 자체 placeholder id를 썼는데,
+  // 그래프 쪽 실제 노드 id와 달라 감사 로그/자산 목록과 그래프 화면이 서로 다른 이름을 가리키는
+  // 불일치가 있었다. README 3.6/설계 문서에도 있던 미해결 항목이라 해소.
+  // 2026-07-22 (2차 수정, 인프라팀 피드백 반영): rds-postgres-prod / onprem-admin-server는
+  // 상범님이 이후 갱신한 실제 Neo4j seed와 맞지 않음 — VPN 폐지로 "관리서버(onprem-admin-server)"
+  // 자산 자체가 폐기되었고(상범님 seed의 negative validation 쿼리가 management 노드 부재를 검증),
+  // RDS도 hap-gitea-db로 개명됨. 아래 id로 교체.
+  // 2026-07-22 (3차, 기준 재확정): 상범님 쪽 Neo4j seed는 아직 이 이름으로 push되지 않아
+  // (hybrid-attack-pathfinder/cypher/01_seed_mvp.cypher 확인 결과 rds-postgres-prod로 남아있음)
+  // 계속 바뀌는 중이라, 지훈님 판단으로 팀 공식 문서인 자산 인벤토리(윤지수, 자산 인벤토리 및
+  // 민감도 등급 매핑)를 1차 기준으로 잠정 삼았었음.
+  // 2026-07-22 (4차, 최종): 상범님이 직접 전달한 확정 노드 id 전체 목록 기준으로 재확인.
+  // hap-onprem-web/hap-gitea-db/hap-customer-data-s3는 그대로 일치했고, pod만
+  // eks-pod-gitea가 아니라 pod-gitea-app이 맞아서 교체함. (레포 파일 자체는 아직 이 최종 목록으로
+  // push되지 않았을 수 있으니, 그래프 조회가 404 나면 엔진 쪽 push 여부부터 확인할 것)
   const demoAssets: Partial<Asset>[] = [
     {
-      id: 'asset-onprem-web-01',
-      name: 'onprem-web-server',
+      id: 'hap-onprem-web',
+      name: 'On-Prem WordPress Web Server',
       type: AssetType.WEB_SERVER,
       environment: Environment.ON_PREM,
       sensitivityLevel: SensitivityLevel.INTERNAL,
     },
     {
-      id: 'asset-rds-01',
-      name: 'prod-rds-postgres',
+      id: 'hap-gitea-db',
+      name: 'RDS (Gitea DB)',
       type: AssetType.RDS,
       environment: Environment.AWS,
       sensitivityLevel: SensitivityLevel.RESTRICTED,
     },
     {
-      id: 'asset-s3-01',
-      name: 'prod-data-bucket',
+      id: 'hap-customer-data-s3',
+      name: 'HAP Customer Dummy Data S3',
       type: AssetType.S3,
       environment: Environment.AWS,
-      sensitivityLevel: SensitivityLevel.CONFIDENTIAL,
+      sensitivityLevel: SensitivityLevel.RESTRICTED,
     },
     {
-      id: 'eks-pod-checkout-service',
-      name: 'checkout-service Pod',
+      id: 'pod-gitea-app',
+      name: 'Gitea EKS Pod',
       type: AssetType.APP_POD,
       environment: Environment.AWS_EKS,
       sensitivityLevel: SensitivityLevel.CONFIDENTIAL,
@@ -97,7 +113,7 @@ async function seed() {
       id: 'scn-onprem-access-key-to-s3',
       name: '온프레미스 서버 침해 후 AWS Access Key를 통한 S3 접근',
       description:
-        '온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 탈취하여 IAM User와 IAM Policy를 거쳐 고객 데이터 S3 Bucket에 접근 가능한 경로',
+        '온프레미스 WordPress 웹서버(hap-onprem-web) 침해 후 저장된 AWS Access Key를 탈취하여 IAM User와 IAM Policy를 거쳐 고객 데이터 S3 Bucket에 접근 가능한 경로',
       severity: 'CRITICAL',
       graphId: 'scn-onprem-access-key-to-s3',
       mitreTactics: ['Credential Access', 'Privilege Escalation'],
@@ -131,7 +147,7 @@ async function seed() {
     {
       id: 'scn-onprem-to-restricted-assets',
       name: '온프레미스 서버 침해 후 Restricted 자산 접근 가능 경로',
-      description: '온프레미스 관리 서버 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색',
+      description: '온프레미스 WordPress 웹서버(hap-onprem-web) 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색',
       severity: 'CRITICAL',
       graphId: 'scn-onprem-to-restricted-assets',
       mitreTactics: ['Credential Access', 'Discovery'],
