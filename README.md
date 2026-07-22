@@ -131,6 +131,64 @@ The graph uses `gitea-db-credentials` as the mounted Secret node ID and stores
 `awsSecretName: hap-db-secret` on that node to preserve the Terraform/K8s
 mapping.
 
+## Risk Score
+
+The API keeps the existing `riskScore` and `riskLevel` fields and adds a
+non-breaking explanation payload:
+
+```json
+{
+  "riskScore": 7.4,
+  "riskLevel": "HIGH",
+  "riskBreakdown": {
+    "assetSensitivity": 2.0,
+    "internetExposure": 1.2,
+    "permissionRisk": 2.0,
+    "hopRisk": 0.7,
+    "findingRisk": 1.5
+  },
+  "findingSummary": {
+    "total": 2,
+    "critical": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "maxCvss": 9.8,
+    "sources": ["TRIVY", "SCOUT_SUITE"]
+  }
+}
+```
+
+`findingRisk` is based on active `Finding` nodes connected through
+`HAS_FINDING` to any node in the returned path. `RESOLVED` and `SUPPRESSED`
+findings are excluded, duplicate CVEs are counted once, only the strongest five
+findings contribute to the score, and `findingRisk` is capped at `2.5`. The
+overall score remains capped at `10.0`.
+
+Scenario status values are `REPRODUCED`, `DETECTABLE`, `DETECTED`, and
+`POTENTIAL`. S1-S4 are seeded as `POTENTIAL`; detection rules return `DETECTED`
+when matching `Event` evidence exists and `DETECTABLE` otherwise.
+
+## Detection Rules
+
+`scripts/detection-rules.cypher` and the `/detection-rules` endpoint expose D1
+through D12:
+
+```text
+D1  unusual IP/region IAM access key usage
+D2  repeated AssumeRole
+D3  AssumeRole followed by customer S3 read
+D4  S3 PutObject outside allowed prefixes
+D5  WordPress compromise followed by hap-onprem-web-key use
+D6  unexpected GetSecretValue from Pod
+D7  GetSecretValue followed by KMS Decrypt and RDS access
+D8  abnormal Pod behavior after ALB attack
+D9  unexpected direct RDS access from Pod
+D10 DB log-only credential attempts customer S3 access
+D11 repeated AccessDenied
+D12 unusual User-Agent AWS API calls
+```
+
 ## Files
 
 ```text
@@ -154,21 +212,21 @@ Load the seed:
 
 ```powershell
 docker cp .\scripts\seed.cypher hybrid-neo4j:/seed.cypher
-docker exec hybrid-neo4j cypher-shell -u neo4j -p password1234 -f /seed.cypher
+docker exec hybrid-neo4j cypher-shell -u neo4j -p password123 -f /seed.cypher
 ```
 
 Run path queries:
 
 ```powershell
 docker cp .\scripts\attack-path-queries.cypher hybrid-neo4j:/attack-path-queries.cypher
-docker exec hybrid-neo4j cypher-shell -u neo4j -p password1234 -f /attack-path-queries.cypher
+docker exec hybrid-neo4j cypher-shell -u neo4j -p password123 -f /attack-path-queries.cypher
 ```
 
 Run detection rule syntax checks:
 
 ```powershell
 docker cp .\scripts\detection-rules.cypher hybrid-neo4j:/detection-rules.cypher
-docker exec hybrid-neo4j cypher-shell -u neo4j -p password1234 -f /detection-rules.cypher
+docker exec hybrid-neo4j cypher-shell -u neo4j -p password123 -f /detection-rules.cypher
 ```
 
 ## Useful Validation Queries

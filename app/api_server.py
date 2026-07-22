@@ -9,6 +9,8 @@ from app.path_finder import (
     NEO4J_URI,
     NEO4J_USER,
     SCENARIOS,
+    list_detection_rules,
+    run_detection_rules,
     run_scenario,
 )
 
@@ -59,6 +61,8 @@ def make_cytoscape_elements(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                         "assetRole": node.get("assetRole"),
                         "sensitivityLevel": node.get("sensitivityLevel"),
                         "riskLevel": node.get("riskLevel"),
+                        "sensitive": node.get("sensitive"),
+                        "labels": node.get("labels"),
                     }
                 }
 
@@ -73,6 +77,8 @@ def make_cytoscape_elements(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                         "label": edge.get("type"),
                         "type": edge.get("type"),
                         "action": edge.get("action"),
+                        "resourcePrefix": edge.get("resourcePrefix"),
+                        "permissionLevel": edge.get("permissionLevel"),
                     }
                 }
 
@@ -116,6 +122,7 @@ def list_scenarios() -> Dict[str, Any]:
             {
                 "scenarioId": scenario["scenarioId"],
                 "scenarioName": scenario["scenarioName"],
+                "scenarioStatus": scenario["scenarioStatus"],
                 "sourceAssetId": scenario["sourceAssetId"],
                 "targetAssetId": scenario["targetAssetId"],
                 "summary": scenario["summary"],
@@ -145,6 +152,26 @@ def get_all_attack_paths() -> Dict[str, Any]:
 
     finally:
         driver.close()
+
+
+@app.get("/detections")
+def get_detections() -> Dict[str, Any]:
+    driver = get_driver()
+
+    try:
+        return run_detection_rules(driver)
+
+    finally:
+        driver.close()
+
+
+@app.get("/detection-rules")
+def get_detection_rules() -> Dict[str, Any]:
+    rules = list_detection_rules()
+    return {
+        "count": len(rules),
+        "rules": rules,
+    }
 
 
 @app.get("/attack-paths/{scenario_id}")

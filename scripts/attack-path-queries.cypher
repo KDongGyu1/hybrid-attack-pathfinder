@@ -232,3 +232,21 @@ RETURN
   secret.id AS secret_id,
   secret.awsSecretName AS aws_secret_name,
   albBucket.id + "/" + config.prefix AS config_location;
+
+// Q16. Finding inventory used by risk scoring.
+MATCH (n)-[:HAS_FINDING]->(finding:Finding)
+RETURN
+  n.id AS graph_node_id,
+  finding.id AS finding_id,
+  finding.source AS source,
+  finding.severity AS severity,
+  finding.cvss_score AS cvss_score,
+  finding.cve_id AS cve_id,
+  finding.finding_type AS finding_type,
+  finding.status AS status
+ORDER BY graph_node_id, finding_id;
+
+// Q17. Scenario status inventory.
+MATCH (status:ScenarioStatus)
+RETURN status.id AS status_id, status.description AS description
+ORDER BY status_id;

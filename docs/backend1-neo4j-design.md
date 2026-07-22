@@ -67,6 +67,7 @@ intentionally excluded.
 | `ENCRYPTED_BY` | Resource is encrypted with a KMS key |
 | `LOGS_TO`, `HAS_LOG_PREFIX` | Log delivery destination and prefix |
 | `MATCHES_SCENARIO` | Event evidence is associated with a scenario |
+| `HAS_FINDING` | Asset, credential, or runtime node has a scanner/security finding |
 
 ## Attack Path Model
 
@@ -112,6 +113,56 @@ access plus required KMS decrypt capability.
 
 ## Detection Event Model
 
+## Risk Score Model
+
+`app/path_finder.py` computes a 0-10 score. Existing response fields are
+preserved, and `riskBreakdown` plus `findingSummary` explain why a path scored
+the way it did.
+
+| Component | Max contribution | Basis |
+| --- | ---: | --- |
+| `assetSensitivity` | 2.0 | target sensitivity, sensitive flag, and target labels such as S3/RDS/Secret/KMS |
+| `internetExposure` | 1.2 | `EXPOSED_TO_INTERNET` relationship or exposed node flag |
+| `permissionRisk` | 2.0 | credential use, assume role/IRSA, policy access, wildcard actions |
+| `hopRisk` | 1.0 | shorter paths score higher |
+| `findingRisk` | 2.5 | active TRIVY/SCOUT_SUITE findings connected to path nodes |
+
+Finding scoring uses severity weights (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`,
+`UNKNOWN`) and CVSS when present. Duplicate CVEs are counted once, only the top
+five active findings contribute, `RESOLVED` and `SUPPRESSED` are excluded, and
+the final score is capped at `10.0`.
+
+The API returns:
+
+```text
+riskScore
+riskLevel
+riskBreakdown.assetSensitivity
+riskBreakdown.internetExposure
+riskBreakdown.permissionRisk
+riskBreakdown.hopRisk
+riskBreakdown.findingRisk
+findingSummary.total
+findingSummary.critical
+findingSummary.high
+findingSummary.medium
+findingSummary.low
+findingSummary.maxCvss
+findingSummary.sources
+```
+
+## Scenario Status Model
+
+| Status | Meaning |
+| --- | --- |
+| `REPRODUCED` | Attack has been reproduced and has supporting logs |
+| `DETECTABLE` | Detection rule exists, but no current matching Event is required |
+| `DETECTED` | Current Event nodes match a detection rule |
+| `POTENTIAL` | Asset, credential, permission, or network graph path exists |
+
+S1-S4 are graph-derived and seeded as `POTENTIAL`. Detection rules are exposed
+as `DETECTABLE` and become `DETECTED` in API output when matching events exist.
+
 `scripts/detection-rules.cypher` assumes `Event` nodes with these common
 properties:
 
@@ -137,12 +188,18 @@ Current detection rules cover:
 
 | Rule | Scenario |
 | --- | --- |
-| R1 | S2 abnormal ALB/Pod/RDS chain |
-| R2 | S3 On-Prem web key writing customer S3 backup prefixes |
-| R3 | S3 On-Prem web key writing SOC log prefix |
-| R4 | S4 AssumeRoleWithWebIdentity, GetSecretValue, optional KMS decrypt, RDS |
-| R5 | S1-A dev-01 key direct customer S3 access |
-| R6 | S1-B dev-01 key AssumeRole then customer S3 read |
+| D1 | IAM access key used from an unusual IP or region |
+| D2 | Repeated AssumeRole in a short time window |
+| D3 | AssumeRole followed by customer S3 ListBucket/GetObject |
+| D4 | S3 PutObject outside allowed prefixes |
+| D5 | WordPress compromise followed by hap-onprem-web-key use |
+| D6 | Unexpected GetSecretValue from Pod |
+| D7 | GetSecretValue followed by KMS Decrypt and RDS access |
+| D8 | Abnormal Pod behavior after internal ALB attack |
+| D9 | Unexpected direct RDS access from Pod |
+| D10 | DB log-only credential attempts customer S3 access |
+| D11 | Repeated AccessDenied |
+| D12 | AWS API calls from unusual User-Agent |
 
 Each scenario query returns the common detection result fields:
 `scenario_id`, `scenario_name`, `severity`, `first_event_time`,

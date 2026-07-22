@@ -525,38 +525,93 @@ MERGE (socLogS3)-[:ENCRYPTED_BY]->(logKms);
 
 MERGE (s1:Scenario {id: "S1"})
 SET s1.name = "dev-01 IAM access key to customer S3",
-    s1.status = "PENDING_SAMPLE_VALIDATION",
+    s1.status = "POTENTIAL",
     s1.severity = "HIGH";
 
 MERGE (s2:Scenario {id: "S2"})
 SET s2.name = "Internet to Gitea Pod and RDS",
-    s2.status = "ACTIVE",
+    s2.status = "POTENTIAL",
     s2.severity = "HIGH";
 
 MERGE (s3:Scenario {id: "S3"})
 SET s3.name = "On-Prem WordPress key to S3 prefixes",
-    s3.status = "ACTIVE",
+    s3.status = "POTENTIAL",
     s3.severity = "MEDIUM";
 
 MERGE (s4:Scenario {id: "S4"})
 SET s4.name = "Gitea Pod IRSA to Secret and RDS",
-    s4.status = "ACTIVE",
+    s4.status = "POTENTIAL",
     s4.severity = "HIGH";
+
+MERGE (statusReproduced:ScenarioStatus {id: "REPRODUCED"})
+  SET statusReproduced.name = "REPRODUCED",
+      statusReproduced.description = "Attack is reproduced and supported by logs";
+MERGE (statusDetectable:ScenarioStatus {id: "DETECTABLE"})
+  SET statusDetectable.name = "DETECTABLE",
+      statusDetectable.description = "Detection rule exists but no matching event is currently present";
+MERGE (statusDetected:ScenarioStatus {id: "DETECTED"})
+  SET statusDetected.name = "DETECTED",
+      statusDetected.description = "Current Event nodes match a detection rule";
+MERGE (statusPotential:ScenarioStatus {id: "POTENTIAL"})
+  SET statusPotential.name = "POTENTIAL",
+      statusPotential.description = "Only asset, credential, permission, or network graph path exists";
 
 MERGE (findingAlb:Finding {id: "finding-alb-public-http"})
 SET findingAlb.name = "finding-alb-public-http",
+    findingAlb.source = "SCOUT_SUITE",
     findingAlb.severity = "MEDIUM",
+    findingAlb.cvss_score = 5.3,
+    findingAlb.finding_type = "PUBLIC_HTTP",
+    findingAlb.status = "OPEN",
     findingAlb.description = "Prod ALB is public on HTTP/80";
 
 MERGE (findingDevKey:Finding {id: "finding-dev-access-key-exposure"})
 SET findingDevKey.name = "finding-dev-access-key-exposure",
+    findingDevKey.source = "SCOUT_SUITE",
     findingDevKey.severity = "HIGH",
+    findingDevKey.cvss_score = 8.1,
+    findingDevKey.finding_type = "EXPOSED_ACCESS_KEY",
+    findingDevKey.status = "OPEN",
     findingDevKey.description = "dev-01 access key is compromised";
 
 MERGE (findingWebKey:Finding {id: "finding-onprem-web-key-exposure"})
 SET findingWebKey.name = "finding-onprem-web-key-exposure",
+    findingWebKey.source = "SCOUT_SUITE",
     findingWebKey.severity = "HIGH",
+    findingWebKey.cvss_score = 7.8,
+    findingWebKey.finding_type = "EXPOSED_ACCESS_KEY",
+    findingWebKey.status = "OPEN",
     findingWebKey.description = "On-Prem web access key is exposed";
+
+MERGE (findingGiteaCritical:Finding {id: "finding-gitea-critical-cve"})
+SET findingGiteaCritical.name = "finding-gitea-critical-cve",
+    findingGiteaCritical.source = "TRIVY",
+    findingGiteaCritical.severity = "CRITICAL",
+    findingGiteaCritical.cvss_score = 9.8,
+    findingGiteaCritical.cve_id = "CVE-2026-0001",
+    findingGiteaCritical.finding_type = "CONTAINER_VULNERABILITY",
+    findingGiteaCritical.status = "OPEN",
+    findingGiteaCritical.description = "Critical Gitea container package finding";
+
+MERGE (findingGiteaDuplicate:Finding {id: "finding-gitea-critical-cve-duplicate"})
+SET findingGiteaDuplicate.name = "finding-gitea-critical-cve-duplicate",
+    findingGiteaDuplicate.source = "TRIVY",
+    findingGiteaDuplicate.severity = "CRITICAL",
+    findingGiteaDuplicate.cvss_score = 9.8,
+    findingGiteaDuplicate.cve_id = "CVE-2026-0001",
+    findingGiteaDuplicate.finding_type = "CONTAINER_VULNERABILITY",
+    findingGiteaDuplicate.status = "OPEN",
+    findingGiteaDuplicate.description = "Duplicate record for the same CVE, retained to verify dedupe";
+
+MERGE (findingSuppressed:Finding {id: "finding-suppressed-example"})
+SET findingSuppressed.name = "finding-suppressed-example",
+    findingSuppressed.source = "TRIVY",
+    findingSuppressed.severity = "HIGH",
+    findingSuppressed.cvss_score = 8.8,
+    findingSuppressed.cve_id = "CVE-2026-9999",
+    findingSuppressed.finding_type = "SUPPRESSED_TEST_FINDING",
+    findingSuppressed.status = "SUPPRESSED",
+    findingSuppressed.description = "Suppressed finding retained to verify exclusion";
 
 MATCH (devAccessKey:Credential {id: "hap-dev-01-access-key"}), (findingDevKey:Finding {id: "finding-dev-access-key-exposure"})
 MERGE (devAccessKey)-[:HAS_FINDING]->(findingDevKey);
@@ -566,3 +621,12 @@ MERGE (onpremWeb)-[:HAS_FINDING]->(findingWebKey);
 
 MATCH (prodAlb:ALB {id: "hap-prod-alb"}), (findingAlb:Finding {id: "finding-alb-public-http"})
 MERGE (prodAlb)-[:HAS_FINDING]->(findingAlb);
+
+MATCH (pod:Pod {id: "pod-gitea-app"}), (findingGiteaCritical:Finding {id: "finding-gitea-critical-cve"})
+MERGE (pod)-[:HAS_FINDING]->(findingGiteaCritical);
+
+MATCH (pod:Pod {id: "pod-gitea-app"}), (findingGiteaDuplicate:Finding {id: "finding-gitea-critical-cve-duplicate"})
+MERGE (pod)-[:HAS_FINDING]->(findingGiteaDuplicate);
+
+MATCH (pod:Pod {id: "pod-gitea-app"}), (findingSuppressed:Finding {id: "finding-suppressed-example"})
+MERGE (pod)-[:HAS_FINDING]->(findingSuppressed);

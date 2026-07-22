@@ -1,19 +1,19 @@
 // Hybrid Attack Path Backend1
 // Detection rules for Event nodes linked to the attack-path graph.
 //
+// Rule status semantics:
+// REPRODUCED means the attack has been replayed and supported by logs.
+// DETECTABLE means a detection rule exists but no matching Event may exist.
+// DETECTED means current Event nodes match the rule.
+// POTENTIAL means only the asset/permission/network graph path exists.
+//
 // Expected Event properties:
 // event_id, event_time, source_type, log_type, actor_id, actor_type, source_ip,
 // action, source_asset_id, target_asset_id, result, severity_hint, raw_log_ref,
 // access_key_id, credential_id, request_id, session_id, role_arn, service_account,
 // pod_id, secret_arn, kms_key_id, bucket_name, object_key, resource_prefix,
-// database_user, attributes
-//
-// Minimal event graph relationships:
-// (:Event)-[:PERFORMED_BY]->(:IAMUser|:ServiceAccount|:Identity)
-// (:Event)-[:ORIGINATED_FROM]->(:Asset)
-// (:Event)-[:TARGETED]->(:Asset)
-// (:Event)-[:USES_CREDENTIAL]->(:Credential)
-// (:Event)-[:MATCHES_SCENARIO]->(:Scenario)
+// database_user, user_agent, is_unusual_ip, is_unusual_region,
+// is_unusual_user_agent, is_abnormal, connection_path, attributes
 
 // R0. Link events to known graph nodes by stable IDs.
 MATCH (e:Event)
@@ -38,171 +38,58 @@ FOREACH (_ IN CASE WHEN credential IS NULL THEN [] ELSE [1] END |
 )
 RETURN count(e) AS linked_event_count;
 
-// R1. S2 detection: abnormal HTTP request -> Gitea Pod behavior -> RDS activity.
-MATCH (albEvent:Event)
-WHERE albEvent.source_asset_id = "hap-prod-alb"
-  AND albEvent.target_asset_id = "pod-gitea-app"
-  AND albEvent.action IN ["HTTP_REQUEST", "ALB_REQUEST", "FORWARD"]
-  AND coalesce(albEvent.result, "UNKNOWN") <> "BLOCKED"
-MATCH (podEvent:Event)
-WHERE podEvent.pod_id = "pod-gitea-app"
-  AND podEvent.event_time >= albEvent.event_time
-  AND (
-    podEvent.request_id = albEvent.request_id
-    OR podEvent.source_ip = albEvent.source_ip
-    OR podEvent.source_asset_id = "pod-gitea-app"
-  )
-MATCH (rdsEvent:Event)
-WHERE rdsEvent.target_asset_id = "hap-gitea-db"
-  AND rdsEvent.event_time >= podEvent.event_time
-  AND (
-    rdsEvent.request_id = podEvent.request_id
-    OR rdsEvent.pod_id = "pod-gitea-app"
-    OR rdsEvent.source_asset_id = "pod-gitea-app"
-  )
-RETURN
-  "S2" AS scenario_id,
-  "Internet to Gitea Pod and RDS event chain" AS scenario_name,
-  "HIGH" AS severity,
-  min(albEvent.event_time) AS first_event_time,
-  max(rdsEvent.event_time) AS last_event_time,
-  count(DISTINCT albEvent) + count(DISTINCT podEvent) + count(DISTINCT rdsEvent) AS evidence_count,
-  collect(DISTINCT albEvent.event_id) + collect(DISTINCT podEvent.event_id) + collect(DISTINCT rdsEvent.event_id) AS event_ids,
-  albEvent.source_asset_id AS source_asset_id,
-  rdsEvent.target_asset_id AS target_asset_id,
-  coalesce(podEvent.credential_id, rdsEvent.credential_id) AS credential_id,
-  coalesce(podEvent.actor_id, rdsEvent.actor_id) AS actor_id,
-  ["hap-prod-alb", "pod-gitea-app", "hap-gitea-db"] AS graph_node_ids;
-
-// R2. S3 detection: On-Prem web key writes to WordPress backup prefixes.
+// D1. Unusual IP or region IAM Access Key usage.
 MATCH (e:Event)
-WHERE coalesce(e.credential_id, e.access_key_id) = "hap-onprem-web-key"
-  AND e.bucket_name = "hap-customer-data-s3"
-  AND e.action = "s3:PutObject"
-  AND (
-    e.resource_prefix IN ["wordpress-files/", "wordpress-db/"]
-    OR e.object_key STARTS WITH "wordpress-files/"
-    OR e.object_key STARTS WITH "wordpress-db/"
-  )
+WHERE coalesce(e.credential_id, e.access_key_id) IS NOT NULL
+  AND (coalesce(e.is_unusual_ip, false) = true OR coalesce(e.is_unusual_region, false) = true)
 RETURN
-  "S3-WEB-CUSTOMER-S3" AS scenario_id,
-  "On-Prem web key PutObject to customer S3 backup prefix" AS scenario_name,
-  coalesce(e.severity_hint, "MEDIUM") AS severity,
+  "D1" AS scenario_id,
+  "IAM access key used from unusual IP or region" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  coalesce(e.severity_hint, "HIGH") AS severity,
   min(e.event_time) AS first_event_time,
   max(e.event_time) AS last_event_time,
   count(e) AS evidence_count,
   collect(e.event_id) AS event_ids,
   e.source_asset_id AS source_asset_id,
-  "hap-customer-data-s3" AS target_asset_id,
-  "hap-onprem-web-key" AS credential_id,
+  e.target_asset_id AS target_asset_id,
+  coalesce(e.credential_id, e.access_key_id) AS credential_id,
   e.actor_id AS actor_id,
-  ["hap-onprem-web", "hap-onprem-web-key", "hap-onprem-web-s3-policy", "hap-customer-data-s3"] AS graph_node_ids;
+  collect(DISTINCT coalesce(e.source_asset_id, e.actor_id)) AS graph_node_ids;
 
-// R3. S3 detection: On-Prem web key writes logs to hap-soc-log-s3/onprem/.
+// D2. Repeated AssumeRole in a short period.
 MATCH (e:Event)
-WHERE coalesce(e.credential_id, e.access_key_id) = "hap-onprem-web-key"
-  AND e.bucket_name = "hap-soc-log-s3"
-  AND e.action = "s3:PutObject"
-  AND (e.resource_prefix = "onprem/" OR e.object_key STARTS WITH "onprem/")
+WHERE e.action = "sts:AssumeRole"
+WITH e.actor_id AS actor_id, e.role_arn AS role_arn, collect(e) AS events
+WHERE size(events) >= 5
+UNWIND events AS e
 RETURN
-  "S3-WEB-LOG-S3" AS scenario_id,
-  "On-Prem web key PutObject to SOC log prefix" AS scenario_name,
-  coalesce(e.severity_hint, "LOW") AS severity,
+  "D2" AS scenario_id,
+  "Repeated AssumeRole in short time window" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  "MEDIUM" AS severity,
   min(e.event_time) AS first_event_time,
   max(e.event_time) AS last_event_time,
   count(e) AS evidence_count,
   collect(e.event_id) AS event_ids,
   e.source_asset_id AS source_asset_id,
-  "hap-soc-log-s3" AS target_asset_id,
-  "hap-onprem-web-key" AS credential_id,
+  e.target_asset_id AS target_asset_id,
+  coalesce(e.credential_id, e.access_key_id) AS credential_id,
   e.actor_id AS actor_id,
-  ["hap-onprem-web", "hap-onprem-web-key", "hap-onprem-web-s3-policy", "hap-soc-log-s3"] AS graph_node_ids;
+  collect(DISTINCT e.actor_id) AS graph_node_ids;
 
-// R4. S4 detection: AssumeRoleWithWebIdentity -> GetSecretValue -> optional KMS decrypt -> RDS.
+// D3. AssumeRole followed by customer S3 ListBucket/GetObject.
 MATCH (assume:Event)
-WHERE assume.action = "sts:AssumeRoleWithWebIdentity"
-  AND assume.service_account = "gitea-sa"
-  AND coalesce(assume.role_arn, "") CONTAINS "hap-irsa-gitea-role"
-MATCH (secretRead:Event)
-WHERE secretRead.action = "secretsmanager:GetSecretValue"
-  AND secretRead.event_time >= assume.event_time
-  AND (
-    secretRead.session_id = assume.session_id
-    OR secretRead.pod_id = assume.pod_id
-    OR secretRead.service_account = "gitea-sa"
-  )
-  AND (
-    secretRead.target_asset_id = "gitea-db-credentials"
-    OR coalesce(secretRead.secret_arn, "") CONTAINS "hap-db-secret"
-    OR coalesce(secretRead.secret_arn, "") CONTAINS "gitea-db-credentials"
-  )
-OPTIONAL MATCH (kms:Event)
-WHERE kms.action = "kms:Decrypt"
-  AND kms.event_time >= secretRead.event_time
-  AND (
-    kms.session_id = assume.session_id
-    OR kms.pod_id = assume.pod_id
-    OR kms.kms_key_id = "hap-prod-secrets-cmk"
-  )
-OPTIONAL MATCH (rds:Event)
-WHERE rds.target_asset_id = "hap-gitea-db"
-  AND rds.event_time >= secretRead.event_time
-  AND (
-    rds.session_id = assume.session_id
-    OR rds.pod_id = assume.pod_id
-    OR rds.database_user IS NOT NULL
-  )
-RETURN
-  "S4" AS scenario_id,
-  "Gitea Pod IRSA secret access toward RDS" AS scenario_name,
-  "HIGH" AS severity,
-  min(assume.event_time) AS first_event_time,
-  max(coalesce(rds.event_time, kms.event_time, secretRead.event_time)) AS last_event_time,
-  count(DISTINCT assume) + count(DISTINCT secretRead) + count(DISTINCT kms) + count(DISTINCT rds) AS evidence_count,
-  collect(DISTINCT assume.event_id) + collect(DISTINCT secretRead.event_id) + collect(DISTINCT kms.event_id) + collect(DISTINCT rds.event_id) AS event_ids,
-  assume.pod_id AS source_asset_id,
-  coalesce(rds.target_asset_id, "gitea-db-credentials") AS target_asset_id,
-  null AS credential_id,
-  assume.service_account AS actor_id,
-  ["pod-gitea-app", "gitea-sa", "hap-irsa-gitea-role", "hap-gitea-role-policy", "gitea-db-credentials", "hap-gitea-db"] AS graph_node_ids;
-
-// R5. S1-A detection: dev-01 key authenticates as IAM user and accesses customer S3 directly.
-MATCH (auth:Event)
-WHERE coalesce(auth.credential_id, auth.access_key_id) = "hap-dev-01-access-key"
-  AND auth.actor_id = "hap-dev-01-user"
+WHERE assume.action IN ["sts:AssumeRole", "sts:AssumeRoleWithWebIdentity"]
 MATCH (s3:Event)
-WHERE coalesce(s3.credential_id, s3.access_key_id) = "hap-dev-01-access-key"
-  AND s3.bucket_name = "hap-customer-data-s3"
-  AND s3.action IN ["s3:GetObject", "s3:ListBucket", "s3:PutObject", "s3:*"]
-  AND s3.event_time >= auth.event_time
-RETURN
-  "S1-A" AS scenario_id,
-  "dev-01 key direct policy customer S3 access" AS scenario_name,
-  "HIGH" AS severity,
-  min(auth.event_time) AS first_event_time,
-  max(s3.event_time) AS last_event_time,
-  count(DISTINCT auth) + count(DISTINCT s3) AS evidence_count,
-  collect(DISTINCT auth.event_id) + collect(DISTINCT s3.event_id) AS event_ids,
-  auth.source_asset_id AS source_asset_id,
-  "hap-customer-data-s3" AS target_asset_id,
-  "hap-dev-01-access-key" AS credential_id,
-  "hap-dev-01-user" AS actor_id,
-  ["hap-dev-01-access-key", "hap-dev-01-user", "hap-s3-access-policy", "hap-customer-data-s3"] AS graph_node_ids;
-
-// R6. S1-B detection: dev-01 key assumes readonly role and reads customer S3.
-MATCH (assume:Event)
-WHERE coalesce(assume.credential_id, assume.access_key_id) = "hap-dev-01-access-key"
-  AND assume.actor_id = "hap-dev-01-user"
-  AND assume.action = "sts:AssumeRole"
-  AND coalesce(assume.role_arn, "") CONTAINS "hap-s3-readonly-role"
-MATCH (s3:Event)
-WHERE s3.action IN ["s3:GetObject", "s3:ListBucket"]
-  AND s3.bucket_name = "hap-customer-data-s3"
+WHERE s3.bucket_name = "hap-customer-data-s3"
+  AND s3.action IN ["s3:ListBucket", "s3:GetObject"]
   AND s3.event_time >= assume.event_time
-  AND (s3.session_id = assume.session_id OR coalesce(s3.role_arn, "") CONTAINS "hap-s3-readonly-role")
+  AND (s3.session_id = assume.session_id OR s3.actor_id = assume.actor_id)
 RETURN
-  "S1-B" AS scenario_id,
-  "dev-01 key assumes readonly role to customer S3" AS scenario_name,
+  "D3" AS scenario_id,
+  "AssumeRole followed by customer S3 read" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
   "HIGH" AS severity,
   min(assume.event_time) AS first_event_time,
   max(s3.event_time) AS last_event_time,
@@ -210,6 +97,203 @@ RETURN
   collect(DISTINCT assume.event_id) + collect(DISTINCT s3.event_id) AS event_ids,
   assume.source_asset_id AS source_asset_id,
   "hap-customer-data-s3" AS target_asset_id,
-  "hap-dev-01-access-key" AS credential_id,
-  "hap-dev-01-user" AS actor_id,
-  ["hap-dev-01-access-key", "hap-dev-01-user", "hap-s3-readonly-role", "hap-s3-readonly-policy", "hap-customer-data-s3"] AS graph_node_ids;
+  coalesce(assume.credential_id, assume.access_key_id) AS credential_id,
+  assume.actor_id AS actor_id,
+  collect(DISTINCT assume.actor_id) + ["hap-customer-data-s3"] AS graph_node_ids;
+
+// D4. S3 PutObject outside allowed prefixes.
+MATCH (e:Event)
+WHERE e.bucket_name = "hap-customer-data-s3"
+  AND e.action = "s3:PutObject"
+  AND NOT (
+    e.resource_prefix IN ["wordpress-files/", "wordpress-db/"]
+    OR e.object_key STARTS WITH "wordpress-files/"
+    OR e.object_key STARTS WITH "wordpress-db/"
+  )
+RETURN
+  "D4" AS scenario_id,
+  "S3 PutObject outside allowed prefixes" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  "HIGH" AS severity,
+  min(e.event_time) AS first_event_time,
+  max(e.event_time) AS last_event_time,
+  count(e) AS evidence_count,
+  collect(e.event_id) AS event_ids,
+  e.source_asset_id AS source_asset_id,
+  "hap-customer-data-s3" AS target_asset_id,
+  coalesce(e.credential_id, e.access_key_id) AS credential_id,
+  e.actor_id AS actor_id,
+  collect(DISTINCT coalesce(e.source_asset_id, e.actor_id)) + ["hap-customer-data-s3"] AS graph_node_ids;
+
+// D5. WordPress compromise followed by hap-onprem-web-key use.
+MATCH (e:Event)
+WHERE e.source_asset_id = "hap-onprem-web"
+  AND coalesce(e.credential_id, e.access_key_id) = "hap-onprem-web-key"
+RETURN
+  "D5" AS scenario_id,
+  "WordPress compromise followed by hap-onprem-web-key use" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  coalesce(e.severity_hint, "HIGH") AS severity,
+  min(e.event_time) AS first_event_time,
+  max(e.event_time) AS last_event_time,
+  count(e) AS evidence_count,
+  collect(e.event_id) AS event_ids,
+  "hap-onprem-web" AS source_asset_id,
+  e.target_asset_id AS target_asset_id,
+  "hap-onprem-web-key" AS credential_id,
+  e.actor_id AS actor_id,
+  ["hap-onprem-web", "hap-onprem-web-key"] AS graph_node_ids;
+
+// D6. Unexpected GetSecretValue from a Pod.
+MATCH (e:Event)
+WHERE e.pod_id = "pod-gitea-app"
+  AND e.action = "secretsmanager:GetSecretValue"
+  AND NOT (
+    e.target_asset_id = "gitea-db-credentials"
+    OR coalesce(e.secret_arn, "") CONTAINS "hap-db-secret"
+  )
+RETURN
+  "D6" AS scenario_id,
+  "Unexpected GetSecretValue from Pod" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  "HIGH" AS severity,
+  min(e.event_time) AS first_event_time,
+  max(e.event_time) AS last_event_time,
+  count(e) AS evidence_count,
+  collect(e.event_id) AS event_ids,
+  "pod-gitea-app" AS source_asset_id,
+  e.target_asset_id AS target_asset_id,
+  coalesce(e.credential_id, e.access_key_id) AS credential_id,
+  coalesce(e.actor_id, e.service_account) AS actor_id,
+  ["pod-gitea-app", coalesce(e.target_asset_id, e.secret_arn)] AS graph_node_ids;
+
+// D7. GetSecretValue followed by KMS Decrypt and RDS access.
+MATCH (secretRead:Event)
+WHERE secretRead.action = "secretsmanager:GetSecretValue"
+MATCH (kms:Event)
+WHERE kms.action = "kms:Decrypt"
+  AND kms.event_time >= secretRead.event_time
+  AND (kms.session_id = secretRead.session_id OR kms.pod_id = secretRead.pod_id)
+MATCH (rds:Event)
+WHERE rds.target_asset_id = "hap-gitea-db"
+  AND rds.event_time >= kms.event_time
+  AND (rds.session_id = secretRead.session_id OR rds.pod_id = secretRead.pod_id)
+RETURN
+  "D7" AS scenario_id,
+  "GetSecretValue followed by KMS Decrypt and RDS access" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  "HIGH" AS severity,
+  min(secretRead.event_time) AS first_event_time,
+  max(rds.event_time) AS last_event_time,
+  count(DISTINCT secretRead) + count(DISTINCT kms) + count(DISTINCT rds) AS evidence_count,
+  collect(DISTINCT secretRead.event_id) + collect(DISTINCT kms.event_id) + collect(DISTINCT rds.event_id) AS event_ids,
+  secretRead.pod_id AS source_asset_id,
+  "hap-gitea-db" AS target_asset_id,
+  coalesce(secretRead.credential_id, secretRead.access_key_id) AS credential_id,
+  coalesce(secretRead.actor_id, secretRead.service_account) AS actor_id,
+  ["pod-gitea-app", "gitea-db-credentials", "hap-prod-secrets-cmk", "hap-gitea-db"] AS graph_node_ids;
+
+// D8. Abnormal Pod behavior immediately after internal ALB attack.
+MATCH (alb:Event)
+WHERE alb.source_asset_id = "hap-prod-alb"
+  AND alb.target_asset_id = "pod-gitea-app"
+MATCH (e:Event)
+WHERE e.pod_id = "pod-gitea-app"
+  AND e.event_time >= alb.event_time
+  AND coalesce(e.is_abnormal, false) = true
+RETURN
+  "D8" AS scenario_id,
+  "Abnormal Pod behavior after internal ALB attack" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  "HIGH" AS severity,
+  min(alb.event_time) AS first_event_time,
+  max(e.event_time) AS last_event_time,
+  count(DISTINCT alb) + count(DISTINCT e) AS evidence_count,
+  collect(DISTINCT alb.event_id) + collect(DISTINCT e.event_id) AS event_ids,
+  "hap-prod-alb" AS source_asset_id,
+  "pod-gitea-app" AS target_asset_id,
+  coalesce(e.credential_id, e.access_key_id) AS credential_id,
+  coalesce(e.actor_id, e.service_account) AS actor_id,
+  ["hap-prod-alb", "pod-gitea-app"] AS graph_node_ids;
+
+// D9. Unexpected direct RDS access from Pod.
+MATCH (e:Event)
+WHERE e.pod_id = "pod-gitea-app"
+  AND e.target_asset_id = "hap-gitea-db"
+  AND coalesce(e.connection_path, "") <> "application"
+RETURN
+  "D9" AS scenario_id,
+  "Unexpected direct RDS access from Pod" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  "HIGH" AS severity,
+  min(e.event_time) AS first_event_time,
+  max(e.event_time) AS last_event_time,
+  count(e) AS evidence_count,
+  collect(e.event_id) AS event_ids,
+  "pod-gitea-app" AS source_asset_id,
+  "hap-gitea-db" AS target_asset_id,
+  coalesce(e.credential_id, e.access_key_id) AS credential_id,
+  coalesce(e.actor_id, e.service_account) AS actor_id,
+  ["pod-gitea-app", "hap-gitea-db"] AS graph_node_ids;
+
+// D10. DB log-only credential attempts customer S3 access.
+MATCH (e:Event)
+WHERE coalesce(e.credential_id, e.access_key_id) = "hap-onprem-db-key"
+  AND e.bucket_name = "hap-customer-data-s3"
+RETURN
+  "D10" AS scenario_id,
+  "DB log-only credential attempts customer S3 access" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  "HIGH" AS severity,
+  min(e.event_time) AS first_event_time,
+  max(e.event_time) AS last_event_time,
+  count(e) AS evidence_count,
+  collect(e.event_id) AS event_ids,
+  e.source_asset_id AS source_asset_id,
+  "hap-customer-data-s3" AS target_asset_id,
+  "hap-onprem-db-key" AS credential_id,
+  e.actor_id AS actor_id,
+  ["hap-onprem-db", "hap-onprem-db-key", "hap-customer-data-s3"] AS graph_node_ids;
+
+// D11. Repeated AccessDenied.
+MATCH (e:Event)
+WHERE e.result = "AccessDenied"
+WITH coalesce(e.actor_id, e.credential_id, e.source_ip) AS principal, collect(e) AS events
+WHERE size(events) >= 5
+UNWIND events AS e
+RETURN
+  "D11" AS scenario_id,
+  "Repeated AccessDenied" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  "MEDIUM" AS severity,
+  min(e.event_time) AS first_event_time,
+  max(e.event_time) AS last_event_time,
+  count(e) AS evidence_count,
+  collect(e.event_id) AS event_ids,
+  e.source_asset_id AS source_asset_id,
+  e.target_asset_id AS target_asset_id,
+  coalesce(e.credential_id, e.access_key_id) AS credential_id,
+  e.actor_id AS actor_id,
+  collect(DISTINCT coalesce(e.actor_id, e.credential_id, e.source_ip)) AS graph_node_ids;
+
+// D12. Unusual User-Agent AWS API calls.
+MATCH (e:Event)
+WHERE coalesce(e.user_agent, "") <> ""
+  AND (
+    coalesce(e.is_unusual_user_agent, false) = true
+    OR NOT e.user_agent STARTS WITH "aws-cli/"
+  )
+RETURN
+  "D12" AS scenario_id,
+  "AWS API calls from unusual User-Agent" AS scenario_name,
+  "DETECTABLE" AS scenario_status,
+  "MEDIUM" AS severity,
+  min(e.event_time) AS first_event_time,
+  max(e.event_time) AS last_event_time,
+  count(e) AS evidence_count,
+  collect(e.event_id) AS event_ids,
+  e.source_asset_id AS source_asset_id,
+  e.target_asset_id AS target_asset_id,
+  coalesce(e.credential_id, e.access_key_id) AS credential_id,
+  e.actor_id AS actor_id,
+  collect(DISTINCT coalesce(e.actor_id, e.user_agent)) AS graph_node_ids;
