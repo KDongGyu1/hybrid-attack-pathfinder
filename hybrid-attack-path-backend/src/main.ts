@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // nginx(리버스 프록시) 뒤에서 실행되므로 X-Forwarded-For를 신뢰해야 req.ip가
   // nginx 컨테이너 IP가 아닌 실제 클라이언트 IP를 반환한다 (감사 로그 ipAddress 정확성).
