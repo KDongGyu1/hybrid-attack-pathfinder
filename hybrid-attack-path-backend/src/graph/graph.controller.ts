@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -6,6 +6,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 import { GraphService } from './graph.service';
 import { GraphQueryDto } from './dto/graph-query.dto';
 import { PathQueryDto } from './dto/path-query.dto';
@@ -15,13 +16,33 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
+import { LogsService } from '../logs/logs.service';
+import { AuditAction } from '../logs/dto/log-query.dto';
+
+interface AuthedRequest extends Request {
+  user?: { userId: string; email: string; role: string };
+}
 
 @ApiTags('graph')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller({ path: 'graph', version: '1' })
 export class GraphController {
-  constructor(private readonly graphService: GraphService) {}
+  constructor(
+    private readonly graphService: GraphService,
+    private readonly logsService: LogsService,
+  ) {}
+
+  private async record(req: AuthedRequest, action: AuditAction, targetResource: string): Promise<void> {
+    if (!req.user) return;
+    await this.logsService.record({
+      userId: req.user.userId,
+      userEmail: req.user.email,
+      action,
+      targetResource,
+      ipAddress: req.ip ?? '-',
+    });
+  }
 
   @Get()
   @Roles(Role.VIEWER, Role.ANALYST, Role.ADMIN)
@@ -33,8 +54,10 @@ export class GraphController {
   @ApiResponse({ status: 400, description: '쿼리 파라미터 검증 실패' })
   @ApiResponse({ status: 401, description: '인증 실패' })
   @ApiResponse({ status: 403, description: '권한 부족' })
-  findGraph(@Query() query: GraphQueryDto): Promise<GraphResponseDto> {
-    return this.graphService.findGraph(query);
+  async findGraph(@Query() query: GraphQueryDto, @Req() req: AuthedRequest): Promise<GraphResponseDto> {
+    const result = await this.graphService.findGraph(query);
+    await this.record(req, AuditAction.VIEW_GRAPH, query.scenarioId ?? 'all-scenarios');
+    return result;
   }
 
   // 주의: NestJS는 라우트를 선언 순서대로 매칭한다. 'paths'가 ':scenarioId'보다
@@ -50,8 +73,10 @@ export class GraphController {
   @ApiResponse({ status: 401, description: '인증 실패' })
   @ApiResponse({ status: 403, description: '권한 부족' })
   @ApiResponse({ status: 404, description: 'sourceAssetId 또는 targetAssetId에 해당하는 자산 없음' })
-  findPaths(@Query() query: PathQueryDto): Promise<PathResponseDto> {
-    return this.graphService.findPaths(query);
+  async findPaths(@Query() query: PathQueryDto, @Req() req: AuthedRequest): Promise<PathResponseDto> {
+    const result = await this.graphService.findPaths(query);
+    await this.record(req, AuditAction.SEARCH_PATH, `${query.sourceAssetId}->${query.targetAssetId}`);
+    return result;
   }
 
   @Get(':scenarioId')
@@ -65,7 +90,12 @@ export class GraphController {
   @ApiResponse({ status: 401, description: '인증 실패' })
   @ApiResponse({ status: 403, description: '권한 부족' })
   @ApiResponse({ status: 404, description: '존재하지 않는 시나리오 ID' })
-  findGraphByScenario(@Param('scenarioId') scenarioId: string): Promise<GraphResponseDto> {
-    return this.graphService.findGraphByScenario(scenarioId);
+  async findGraphByScenario(
+    @Param('scenarioId') scenarioId: string,
+    @Req() req: AuthedRequest,
+  ): Promise<GraphResponseDto> {
+    const result = await this.graphService.findGraphByScenario(scenarioId);
+    await this.record(req, AuditAction.VIEW_GRAPH, scenarioId);
+    return result;
   }
 }
