@@ -26,7 +26,7 @@ export class ScenariosController {
 
   @Get()
   @Roles(Role.VIEWER, Role.ANALYST, Role.ADMIN)
-  @ApiOperation({ summary: '공격 시나리오 목록 조회', description: '사전 정의된 공격 시나리오 목록 조회 (발표 시연 시 시나리오 선택 UI에 사용)' })
+  @ApiOperation({ summary: '공격 시나리오 목록 조회', description: '사전 정의된 공격 시나리오 목록 조회 (시나리오 선택 UI에 사용)' })
   @ApiResponse({ status: 200, description: '조회 성공', type: [ScenarioResponseDto] })
   @ApiResponse({ status: 401, description: '인증 실패' })
   findAll() {

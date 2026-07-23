@@ -51,7 +51,7 @@ export class AuthController {
   @Get('me')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: '내 정보 조회', description: '현재 로그인한 사용자 정보 조회 (인증/인가 시연용)' })
+  @ApiOperation({ summary: '내 정보 조회', description: '현재 로그인한 사용자 정보 조회' })
   @ApiResponse({ status: 200, description: '조회 성공' })
   @ApiResponse({ status: 401, description: '토큰 없음 또는 만료' })
   me(@Req() req: any) {
