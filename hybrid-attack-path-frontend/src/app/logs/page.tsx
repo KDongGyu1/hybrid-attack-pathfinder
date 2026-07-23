@@ -80,10 +80,24 @@ export default function LogsPage() {
       <AppHeader title="감사 로그" />
 
       {forbidden ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
-          이 화면은 ADMIN 권한만 조회할 수 있습니다. 현재 계정({user.role})으로는 접근이
-          거부되었습니다 (403). 역할 기반 접근 제어(RBAC)가 정상 동작하는 것을 보여주는
-          화면입니다.
+        <div className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-900/40 px-6 py-20 text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 text-slate-400">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              className="h-6 w-6"
+            >
+              <rect x="4.5" y="10.5" width="15" height="9" rx="1.5" />
+              <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+            </svg>
+          </div>
+          <h2 className="text-base font-semibold text-slate-200">접근 권한이 없습니다</h2>
+          <p className="mt-2 max-w-sm text-sm text-slate-500">
+            감사 로그는 관리자 권한 계정만 조회할 수 있습니다. 현재 계정 권한: {user.role}
+          </p>
         </div>
       ) : (
         <>
