@@ -47,6 +47,22 @@ cp .env.example .env
 
 `.env.example`의 기본값이 위 Docker 명령어의 계정 정보와 이미 일치하도록 맞춰져 있음. `GRAPH_ENGINE_BASE_URL`은 Backend 1 FastAPI 엔진 주소(기본 `http://localhost:8000`, uvicorn 기본 포트)이며, 상범님이 다른 포트로 띄우면 이 값도 맞춰야 함.
 
+### 배포(프로덕션) 환경 (인프라팀 확인, 2026-07-22)
+
+`hap-soc-api` EC2는 docker-compose로 nginx + NestJS + Next.js를 함께 띄우고, nginx가 3000번(ALB가 바라보는 유일한 포트)에서 `/api/*`는 NestJS로, 나머지는 Next.js로 라우팅하는 구조로 확정됨. NestJS는 nginx가 3000을 쓰기 때문에 내부 포트를 4000으로 옮긴다 — `PORT` 환경변수만 바꾸면 되고 코드 수정은 필요 없음(`main.ts`가 이미 `process.env.PORT`를 읽음).
+
+실제 배포 시 주입될 값(전부 env var로만 읽으므로 코드 변경 불필요):
+
+| 변수 | 값 | 비고 |
+|---|---|---|
+| `PORT` | `4000` | nginx가 3000을 점유하므로 내부 포트 변경 |
+| `GRAPH_ENGINE_BASE_URL` | `http://10.1.20.20:8000` | hap-soc-graph 사설 IP, localhost 아님 |
+| `DB_HOST` | `hap-soc-auth-db` RDS 엔드포인트 | 인프라팀이 실제 값 전달 예정 |
+| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Secrets Manager(`hap-soc-jwt-secret`) | JSON에서 분리 주입 |
+| `DB_PASSWORD` | Secrets Manager(`hap-soc-db-secret`) | |
+
+이 값들은 docker-compose 환경변수로 주입될 예정이며, 저장소에는 실제 시크릿 값을 커밋하지 않는다.
+
 ## 3. Backend 1 엔진 실행 (그래프 조회 기능에 필요)
 
 `hybrid-attack-pathfinder` 레포(`feature/backend1-neo4j-engine` 브랜치)의 Neo4j 실행/seed 적재/FastAPI 서버 구동 방법은 해당 레포 README를 참고. (로컬 환경마다 Python/pip 실행 방식이 달라질 수 있어 여기엔 구체적인 명령어를 중복 기재하지 않음)
