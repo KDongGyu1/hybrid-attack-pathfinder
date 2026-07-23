@@ -19,10 +19,10 @@ export class GraphMetaDto {
 }
 
 export class GraphResponseDto {
-  @ApiProperty({ example: 'scn-irsa-s3' })
+  @ApiProperty({ example: 'S1-A' })
   graphId: string;
 
-  @ApiProperty({ example: 'scn-irsa-s3' })
+  @ApiProperty({ example: 'S1-A' })
   scenarioId: string;
 
   @ApiProperty({ example: '2026-07-02T09:00:00.000Z' })

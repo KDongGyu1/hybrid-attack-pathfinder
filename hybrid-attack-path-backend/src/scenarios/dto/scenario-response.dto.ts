@@ -1,19 +1,21 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ScenarioResponseDto {
-  @ApiProperty({ example: 'scn-irsa-s3' })
+  @ApiProperty({ example: 'S1-A' })
   id: string;
 
-  @ApiProperty({ example: 'Pod 침해 -> IRSA -> S3/RDS 접근' })
+  @ApiProperty({ example: 'dev-01 Access Key 탈취 후 고객 S3 직접 접근' })
   name: string;
 
-  @ApiProperty({ example: 'Pod 침해로 ServiceAccount 토큰 탈취 후 IRSA를 통한 S3/RDS 접근' })
+  @ApiProperty({
+    example: '탈취된 dev-01 IAM Access Key로 hap-dev-01-user 인증 후, S3에 직접 연결된 정책을 통해 고객 데이터 S3 Bucket에 접근 가능한 경로',
+  })
   description: string;
 
-  @ApiProperty({ example: 'CRITICAL', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] })
+  @ApiProperty({ example: 'HIGH', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] })
   severity: string;
 
-  @ApiPropertyOptional({ example: 'scn-irsa-s3' })
+  @ApiPropertyOptional({ example: 'S1-A' })
   graphId?: string;
 
   @ApiPropertyOptional({ type: [String] })

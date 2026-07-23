@@ -25,7 +25,7 @@ export class ScenariosController {
 
   @Get(':id')
   @Roles(Role.VIEWER, Role.ANALYST, Role.ADMIN)
-  @ApiParam({ name: 'id', example: 'scn-irsa-s3' })
+  @ApiParam({ name: 'id', example: 'S1-A' })
   @ApiOperation({ summary: '공격 시나리오 상세 조회', description: '시나리오 상세 설명 및 연결된 그래프 조회용 graphId 제공' })
   @ApiResponse({ status: 200, description: '조회 성공', type: ScenarioResponseDto })
   @ApiResponse({ status: 401, description: '인증 실패' })

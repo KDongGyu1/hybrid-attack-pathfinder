@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../auth/entities/user.entity';
 import { Asset } from '../assets/entities/asset.entity';
@@ -103,55 +103,67 @@ async function seed() {
   console.log(`샘플 자산 ${demoAssets.length}건 삽입 완료`);
 
   // 3) 시나리오 목록
-  // 2026-07-10: GraphService가 상범님 Backend 1 엔진(FastAPI)에 실제로 연동되면서,
-  // 여기 id는 그 엔진이 실제로 서빙하는 5개 시나리오 ID와 반드시 일치해야 한다
-  // (안 그러면 GET /graph/:scenarioId가 엔진에서 404를 받는다). 목업 전용이던
-  // 'scn-irsa-s3'는 실제 엔진에 없는 ID라 지우고 아래 5개로 교체한다.
-  await scenarioRepo.delete({ id: 'scn-irsa-s3' });
+  // 2026-07-23: 상범님 엔진(GET /scenarios)에 실제로 curl로 확인한 결과, 엔진의 진짜
+  // scenarioId는 S1-A/S1-B/S2/S3/S4였다. 여기 id가 그 값과 정확히 일치해야
+  // GraphService의 GET /attack-paths/:scenarioId 호출이 404 없이 성공한다.
+  // 이전 라운드의 'scn-*' 이름들은 실제 엔진에 없는 ID라 전부 지우고 교체.
+  // riskLevel(HIGH)도 실제 엔진 응답(curl로 5건 전부 확인, 6.6~7.0점)을 그대로 반영.
+  await scenarioRepo.delete({
+    id: In([
+      'scn-irsa-s3',
+      'scn-onprem-access-key-to-s3',
+      'scn-eks-irsa-to-secrets',
+      'scn-eks-irsa-to-rds',
+      'scn-internet-gitea-to-rds',
+      'scn-onprem-to-restricted-assets',
+    ]),
+  });
 
   const demoScenarios: Partial<Scenario>[] = [
     {
-      id: 'scn-onprem-access-key-to-s3',
-      name: '온프레미스 서버 침해 후 AWS Access Key를 통한 S3 접근',
+      id: 'S1-A',
+      name: 'dev-01 Access Key 탈취 후 고객 S3 직접 접근',
       description:
-        '온프레미스 WordPress 웹서버(hap-onprem-web) 침해 후 저장된 AWS Access Key를 탈취하여 IAM User와 IAM Policy를 거쳐 고객 데이터 S3 Bucket에 접근 가능한 경로',
-      severity: 'CRITICAL',
-      graphId: 'scn-onprem-access-key-to-s3',
-      mitreTactics: ['Credential Access', 'Privilege Escalation'],
-    },
-    {
-      id: 'scn-eks-irsa-to-secrets',
-      name: 'EKS Pod 침해 후 IRSA를 통한 Secrets Manager 접근',
-      description:
-        'Gitea EKS Pod 침해 후 ServiceAccount와 IRSA Role을 거쳐 Secrets Manager의 DB 비밀번호 Secret에 접근 가능한 경로',
-      severity: 'CRITICAL',
-      graphId: 'scn-eks-irsa-to-secrets',
-      mitreTactics: ['Credential Access', 'Lateral Movement'],
-    },
-    {
-      id: 'scn-eks-irsa-to-rds',
-      name: 'EKS Pod 침해 후 Secrets Manager를 통한 RDS 접근',
-      description:
-        'Gitea EKS Pod 침해 후 IRSA Role로 Secrets Manager에 접근하고, 저장된 DB Credential을 통해 RDS PostgreSQL까지 이어지는 경로',
-      severity: 'CRITICAL',
-      graphId: 'scn-eks-irsa-to-rds',
+        '탈취된 dev-01 IAM Access Key로 hap-dev-01-user 인증 후, S3에 직접 연결된 정책을 통해 고객 데이터 S3 Bucket에 접근 가능한 경로',
+      severity: 'HIGH',
+      graphId: 'S1-A',
       mitreTactics: ['Credential Access', 'Exfiltration'],
     },
     {
-      id: 'scn-internet-gitea-to-rds',
-      name: '인터넷 노출 Gitea를 통한 RDS 접근',
-      description: '인터넷에 노출된 Gitea 애플리케이션 서버 침해 후 RDS PostgreSQL에 접근 가능한 네트워크 기반 공격 경로',
+      id: 'S1-B',
+      name: 'dev-01 Access Key로 Readonly Role Assume 후 고객 S3 접근',
+      description:
+        '탈취된 dev-01 IAM Access Key로 hap-s3-readonly-role을 Assume하여 고객 데이터 S3 Bucket에 접근 가능한 경로',
       severity: 'HIGH',
-      graphId: 'scn-internet-gitea-to-rds',
+      graphId: 'S1-B',
+      mitreTactics: ['Credential Access', 'Privilege Escalation', 'Exfiltration'],
+    },
+    {
+      id: 'S2',
+      name: '인터넷 노출 ALB를 통한 Gitea Pod 경유 RDS 접근',
+      description:
+        '인터넷 트래픽이 hap-prod-alb(HTTP/80)로 도달해 pod-gitea-app으로 이동하고, 해당 Pod가 Gitea RDS PostgreSQL(hap-gitea-db)에 연결되는 경로',
+      severity: 'HIGH',
+      graphId: 'S2',
       mitreTactics: ['Initial Access', 'Lateral Movement'],
     },
     {
-      id: 'scn-onprem-to-restricted-assets',
-      name: '온프레미스 서버 침해 후 Restricted 자산 접근 가능 경로',
-      description: '온프레미스 WordPress 웹서버(hap-onprem-web) 침해 후 저장된 AWS Access Key를 통해 접근 가능한 모든 Restricted 등급 자산 탐색',
-      severity: 'CRITICAL',
-      graphId: 'scn-onprem-to-restricted-assets',
-      mitreTactics: ['Credential Access', 'Discovery'],
+      id: 'S3',
+      name: '온프레미스 WordPress 키를 통한 고객 S3 제한 접근',
+      description:
+        '침해된 온프레미스 WordPress 웹서버(hap-onprem-web)가 hap-onprem-web-key를 사용해, 허용된 고객 S3 백업 prefix에만 쓰기 가능한 경로',
+      severity: 'HIGH',
+      graphId: 'S3',
+      mitreTactics: ['Credential Access', 'Exfiltration'],
+    },
+    {
+      id: 'S4',
+      name: 'Gitea Pod IRSA를 통한 Secret 및 RDS 접근',
+      description:
+        'Gitea Pod(pod-gitea-app)가 gitea-sa로 hap-irsa-gitea-role을 Assume하여 hap-db-secret 기반 DB Credential을 읽고, RDS(hap-gitea-db)에 접근 가능한 경로',
+      severity: 'HIGH',
+      graphId: 'S4',
+      mitreTactics: ['Credential Access', 'Lateral Movement'],
     },
   ];
 

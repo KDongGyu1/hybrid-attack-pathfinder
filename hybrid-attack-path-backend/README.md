@@ -100,11 +100,13 @@ Backend 1 엔진이 실제로 서빙하는 5개 시나리오와 ID가 1:1로 맞
 
 | ID | 설명 |
 |---|---|
-| scn-onprem-access-key-to-s3 | 온프레미스 서버 침해 → AWS Access Key 탈취 → S3 접근 |
-| scn-eks-irsa-to-secrets | EKS Pod 침해 → IRSA → Secrets Manager 접근 |
-| scn-eks-irsa-to-rds | EKS Pod 침해 → Secrets Manager → RDS 접근 |
-| scn-internet-gitea-to-rds | 인터넷 노출 Gitea → RDS 접근 |
-| scn-onprem-to-restricted-assets | 온프레미스 서버 침해 → Restricted 등급 자산 전체 탐색 |
+| S1-A | dev-01 Access Key 탈취 → 고객 S3 직접 접근 |
+| S1-B | dev-01 Access Key로 Readonly Role Assume → 고객 S3 접근 |
+| S2 | 인터넷 노출 ALB → Gitea Pod 경유 → RDS 접근 |
+| S3 | 온프레미스 WordPress 키 → 고객 S3 제한 접근 |
+| S4 | Gitea Pod IRSA → Secret · RDS 접근 |
+
+(2026-07-23: 상범님 엔진의 GET /scenarios를 직접 curl로 확인해 실제 scenarioId(S1-A~S4)로 재동기화. 이전 라운드의 `scn-*` 이름은 엔진에 없는 ID라 GET /graph/:scenarioId가 전부 404였음.)
 
 ## 주요 엔드포인트
 

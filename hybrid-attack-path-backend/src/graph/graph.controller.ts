@@ -56,7 +56,7 @@ export class GraphController {
 
   @Get(':scenarioId')
   @Roles(Role.VIEWER, Role.ANALYST, Role.ADMIN)
-  @ApiParam({ name: 'scenarioId', example: 'scn-irsa-s3' })
+  @ApiParam({ name: 'scenarioId', example: 'S1-A' })
   @ApiOperation({
     summary: '시나리오별 공격 경로 그래프 조회',
     description: '특정 공격 시나리오 ID에 해당하는 그래프 전체 조회',
