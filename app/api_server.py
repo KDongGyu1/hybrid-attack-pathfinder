@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
 
@@ -13,6 +13,7 @@ from app.path_finder import (
     run_detection_rules,
     run_scenario,
 )
+from app.dynamic_path_finder import run_dynamic_paths
 
 
 app = FastAPI(
@@ -154,6 +155,31 @@ def get_all_attack_paths() -> Dict[str, Any]:
             "results": results,
         }
 
+    finally:
+        driver.close()
+
+
+@app.get("/dynamic-attack-paths")
+def get_dynamic_attack_paths(
+    maxDepth: int = Query(8, ge=1, le=12),
+    limit: int = Query(100, ge=1, le=200),
+    sourceId: Optional[str] = None,
+    targetId: Optional[str] = None,
+    minRiskScore: float = Query(0.0, ge=0.0, le=10.0),
+) -> Dict[str, Any]:
+    driver = get_driver()
+
+    try:
+        return run_dynamic_paths(
+            driver,
+            max_depth=maxDepth,
+            limit=limit,
+            min_risk_score=minRiskScore,
+            source_id=sourceId,
+            target_id=targetId,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     finally:
         driver.close()
 

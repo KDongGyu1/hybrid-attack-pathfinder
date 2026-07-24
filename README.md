@@ -5,6 +5,61 @@ with executable Cypher. The current graph is aligned with the latest
 `origin/feature/infra1-terraform-base` infrastructure resources inspected for
 this task.
 
+## APIs
+
+```text
+GET /health
+GET /scenarios
+GET /attack-paths
+GET /attack-paths/{scenario_id}
+GET /cytoscape
+GET /detections
+GET /detection-rules
+GET /dynamic-attack-paths
+```
+
+## Dynamic Attack Paths
+
+`GET /dynamic-attack-paths` discovers attack paths directly from the current
+Neo4j graph without adding entries to the fixed `SCENARIOS` list. It keeps the
+existing S1-A, S1-B, S2, S3, and S4 APIs unchanged.
+
+Default sources are nodes labelled `Internet`, `Credential`, `IAMAccessKey`,
+`IAMUser`, `Pod`, `ALB`, `OnPremWeb`, or `OnPremDB`. Default targets are
+`sensitive=true` nodes or nodes labelled `S3Bucket`, `RDS`, `SecretsManager`,
+`KMSKey`, or `ECRRepository`.
+
+Allowed traversal relationships are attack movement or permission edges:
+`EXPOSED_TO_INTERNET`, `ALLOWS_TRAFFIC`, `CAN_MOVE_TO`, `CONNECTS_TO`,
+`HAS_CREDENTIAL`, `HAS_ACCESS_KEY`, `AUTHENTICATES_AS`, `ASSUMES_ROLE`,
+`USES_SERVICE_ACCOUNT`, `IRSA_LINKED_TO`, `HAS_PERMISSION`, `CAN_ACCESS`,
+`CAN_ACCESS_SECRET`, and `PULLS_IMAGE_FROM`. Non-attack metadata edges such as
+`CONTAINS`, `LOGS_TO`, `HAS_FINDING`, and `ENCRYPTED_BY` are excluded.
+
+Query parameters:
+
+```text
+maxDepth      default 8, min 1, max 12
+limit         default 100, min 1, max 200
+sourceId      optional exact source node id
+targetId      optional exact target node id
+minRiskScore  default 0, min 0, max 10
+```
+
+Examples:
+
+```powershell
+curl -sS "http://127.0.0.1:8000/dynamic-attack-paths"
+curl -sS "http://127.0.0.1:8000/dynamic-attack-paths?maxDepth=8&limit=100"
+curl -sS "http://127.0.0.1:8000/dynamic-attack-paths?sourceId=internet&targetId=hap-gitea-db&maxDepth=8"
+curl -sS "http://127.0.0.1:8000/dynamic-attack-paths?minRiskScore=6&limit=50"
+```
+
+Dynamic results are scored with the same risk and finding logic used by fixed
+attack paths. Candidate paths are fetched above the requested `limit`, then
+deduplicated, scored, sorted by `riskScore` descending and `hopCount`
+ascending, and finally limited in Python.
+
 ## Current Infrastructure Baseline
 
 | Area | Final value |
@@ -202,6 +257,7 @@ D12 unusual User-Agent AWS API calls
 scripts/seed.cypher
 scripts/attack-path-queries.cypher
 scripts/detection-rules.cypher
+app/dynamic_path_finder.py
 docs/backend1-neo4j-design.md
 README.md
 ```

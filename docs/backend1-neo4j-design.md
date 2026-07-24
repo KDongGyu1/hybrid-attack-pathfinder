@@ -117,6 +117,31 @@ ServiceAccount to `hap-irsa-gitea-role` with subject
 `secretsmanager:GetSecretValue` on `gitea-db-credentials` and `kms:Decrypt` on
 `hap-prod-secrets-cmk`; the Secret connects to `hap-gitea-db`.
 
+## Dynamic Attack Path Model
+
+`GET /dynamic-attack-paths` searches the current Neo4j graph rather than the
+fixed `SCENARIOS` list. The fixed S1-A, S1-B, S2, S3, and S4 scenario queries
+remain unchanged.
+
+Default source labels are `Internet`, `Credential`, `IAMAccessKey`, `IAMUser`,
+`Pod`, `ALB`, `OnPremWeb`, and `OnPremDB`.
+
+Default targets are nodes with `sensitive=true` or labels `S3Bucket`, `RDS`,
+`SecretsManager`, `KMSKey`, or `ECRRepository`.
+
+The dynamic traversal allows only attack movement or permission relationships:
+`EXPOSED_TO_INTERNET`, `ALLOWS_TRAFFIC`, `CAN_MOVE_TO`, `CONNECTS_TO`,
+`HAS_CREDENTIAL`, `HAS_ACCESS_KEY`, `AUTHENTICATES_AS`, `ASSUMES_ROLE`,
+`USES_SERVICE_ACCOUNT`, `IRSA_LINKED_TO`, `HAS_PERMISSION`, `CAN_ACCESS`,
+`CAN_ACCESS_SECRET`, and `PULLS_IMAGE_FROM`.
+
+Metadata relationships such as `CONTAINS`, `LOGS_TO`, `HAS_FINDING`, and
+`ENCRYPTED_BY` are excluded from traversal. Paths are directional, require at
+least one hop, reject repeated-node cycles, and default to depth `8` with an
+allowed range of `1` through `12`. Candidate paths are over-fetched up to a
+bounded cap, then deduplicated, scored, sorted by risk descending and hop count
+ascending, and limited in Python.
+
 ## Detection Event Model
 
 ## Risk Score Model
