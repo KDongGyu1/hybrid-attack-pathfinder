@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import AppHeader from '@/components/AppHeader';
 
-const ACTIONS = ['LOGIN', 'VIEW_GRAPH', 'VIEW_SCENARIO', 'SEARCH_PATH'] as const;
+const ACTIONS = ['LOGIN', 'VIEW_GRAPH', 'VIEW_SCENARIO', 'SEARCH_PATH', 'VIEW_DYNAMIC_PATHS'] as const;
 
 interface LogEntry {
   id: string;

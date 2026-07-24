@@ -154,6 +154,9 @@ src/
 ## 알려진 제약 / 다음 단계
 
 - (해결됨, 2026-07-22) `assets` 테이블의 자산 ID를 상범님이 직접 전달한 확정 노드 id 전체 목록 기준으로 맞춤 — `hap-onprem-web`, `hap-gitea-db`, `hap-customer-data-s3`, `pod-gitea-app`. 다만 `hybrid-attack-pathfinder`의 `cypher/01_seed_mvp.cypher` 파일 자체는 아직 이 목록으로 push되지 않은 상태(`rds-postgres-prod` 등 예전 이름으로 남아있음)라, 실제 배포/시연 전 상범님 쪽 push 여부를 다시 확인해야 함. `AssetResponseDto.relatedEdgeCount`/`relatedScenarioIds` 계산 로직 자체는 아직 미구현 (TODO)
-- `LogsService.record()` 헬퍼가 아직 어느 컨트롤러에서도 호출되지 않음 — 감사 로그 조회 API는 동작하지만 실제로 로그가 쌓이지는 않음
+- (해결됨, 2026-07-23) `LogsService.record()` 훅을 `AuthController`(LOGIN), `GraphController`(VIEW_GRAPH/SEARCH_PATH), `ScenariosController`(VIEW_SCENARIO)에 연결 완료. `main.ts`에 `app.set('trust proxy', true)` 추가해 nginx 뒤에서도 실제 클라이언트 IP가 기록되도록 함
 - 운영 전환 시 `synchronize: true` → TypeORM 마이그레이션으로 교체 필요
-- Backend 1 엔진은 임의의 source/target 쌍 탐색을 지원하지 않고 고정된 5개 시나리오만 조회 가능 — `GET /graph/paths`는 쿼리와 일치하는 시나리오가 있을 때만 결과를 반환함
+- (2026-07-23, 신규) 상범님이 Neo4j 전체 그래프 기준 동적 공격 경로 탐색 엔드포인트를 추가함: `GET {GRAPH_ENGINE_BASE_URL}/dynamic-attack-paths?maxDepth=&limit=&minRiskScore=&sourceId=&targetId=`. 기존 고정 5개 시나리오(`/attack-paths/{scenarioId}`)와는 별개 기능이며, 현재 우리 쪽(backend2/frontend) 어디에서도 이 엔드포인트를 호출하지 않으므로 **연결하지 않으면 대시보드에 노출되지 않음**. 실시간 collector→graph 파이프라인 구축 여부(팀장 결정 대기 중)에 따라 착수 여부 결정 예정. 착수 시 설계 방향:
+  - 응답 구조: 최상위에 통합 `nodes`/`edges`/`elements`(cytoscape 포맷), `paths[]` 배열 안에 경로별 `pathId`/`sourceAssetId`/`targetAssetId`/`riskScore`/`riskLevel`/`summary`/`findingCount`/`findings`(CVE 등)와 **경로별 자체 `nodes`/`edges`까지 포함** — 한 번 호출로 목록+개별 그래프를 다 받아오므로 경로 상세용 API를 별도로 만들 필요 없음
+  - 백엔드: `graph.service.ts`에 `findDynamicPaths(query)` 추가해 위 엔드포인트를 axios로 호출 → 새 DTO로 매핑 → `GraphController`에 `GET /graph/dynamic` 신설 (감사 로그 훅 재사용)
+  - 프론트: 대시보드에 "대표 시나리오" / "동적 경로" 탭 분리, 동적 경로는 위험도순 목록 + 클릭 시 기존 Cytoscape 컴포넌트로 그래프 렌더 (findings 패널 추가는 선택사항)

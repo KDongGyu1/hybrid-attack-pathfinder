@@ -7,6 +7,7 @@ export enum AuditAction {
   VIEW_GRAPH = 'VIEW_GRAPH',
   VIEW_SCENARIO = 'VIEW_SCENARIO',
   SEARCH_PATH = 'SEARCH_PATH',
+  VIEW_DYNAMIC_PATHS = 'VIEW_DYNAMIC_PATHS',
 }
 
 export class LogQueryDto {

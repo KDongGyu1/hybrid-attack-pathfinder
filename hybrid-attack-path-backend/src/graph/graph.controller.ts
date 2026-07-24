@@ -12,6 +12,8 @@ import { GraphQueryDto } from './dto/graph-query.dto';
 import { PathQueryDto } from './dto/path-query.dto';
 import { GraphResponseDto } from './dto/graph-response.dto';
 import { PathResponseDto } from './dto/path-response.dto';
+import { DynamicPathQueryDto } from './dto/dynamic-path-query.dto';
+import { DynamicPathsResponseDto } from './dto/dynamic-path-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -76,6 +78,28 @@ export class GraphController {
   async findPaths(@Query() query: PathQueryDto, @Req() req: AuthedRequest): Promise<PathResponseDto> {
     const result = await this.graphService.findPaths(query);
     await this.record(req, AuditAction.SEARCH_PATH, `${query.sourceAssetId}->${query.targetAssetId}`);
+    return result;
+  }
+
+  // 'dynamic'도 'paths'와 마찬가지로 ':scenarioId'보다 먼저 선언해야 라우트 매칭이 꼬이지 않는다.
+  @Get('dynamic')
+  @Roles(Role.VIEWER, Role.ANALYST, Role.ADMIN)
+  @ApiOperation({
+    summary: '동적 공격 경로 탐색 (Neo4j 전체 그래프 기준)',
+    description:
+      '고정된 5개 대표 시나리오와 별개로, Backend 1 엔진이 Neo4j 전체 그래프에서 실시간으로 계산한 공격 경로 목록을 조회한다. 각 경로는 자체 nodes/edges를 포함하므로 추가 조회 없이 바로 그래프 렌더링에 사용 가능하다.',
+  })
+  @ApiResponse({ status: 200, description: '조회 성공', type: DynamicPathsResponseDto })
+  @ApiResponse({ status: 400, description: '쿼리 파라미터 검증 실패' })
+  @ApiResponse({ status: 401, description: '인증 실패' })
+  @ApiResponse({ status: 403, description: '권한 부족' })
+  @ApiResponse({ status: 503, description: 'Backend 1(Neo4j 탐색 엔진) 서버에 연결할 수 없음' })
+  async findDynamicPaths(
+    @Query() query: DynamicPathQueryDto,
+    @Req() req: AuthedRequest,
+  ): Promise<DynamicPathsResponseDto> {
+    const result = await this.graphService.findDynamicPaths(query);
+    await this.record(req, AuditAction.VIEW_DYNAMIC_PATHS, `maxDepth=${query.maxDepth ?? '-'}&limit=${query.limit ?? '-'}`);
     return result;
   }
 

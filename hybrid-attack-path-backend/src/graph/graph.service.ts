@@ -14,6 +14,8 @@ import { GraphResponseDto } from './dto/graph-response.dto';
 import { PathResponseDto } from './dto/path-response.dto';
 import { NodeData } from './dto/node.dto';
 import { EdgeData } from './dto/edge.dto';
+import { DynamicPathQueryDto } from './dto/dynamic-path-query.dto';
+import { DynamicPathsResponseDto, DynamicPathDto, FindingDto } from './dto/dynamic-path-response.dto';
 import { Environment } from '../common/enums/environment.enum';
 import { SensitivityLevel } from '../common/enums/sensitivity-level.enum';
 
@@ -77,6 +79,46 @@ interface EngineScenarioSummary {
   summary: string;
 }
 
+// 2026-07-23: 상범님이 추가한 GET /dynamic-attack-paths (Neo4j 전체 그래프 기준 실시간 탐색).
+// 고정 5개 시나리오(EngineScenarioResult)와 별개 기능. finding 필드만 엔진 쪽이 snake_case로 준다.
+interface EngineFinding {
+  id: string;
+  name: string;
+  source: string;
+  severity: string;
+  cvss_score: number | null;
+  cve_id: string | null;
+  finding_type: string;
+  status: string;
+  asset_id: string;
+}
+
+interface EngineDynamicPath {
+  pathId: string;
+  pathType: string;
+  sourceAssetId: string;
+  targetAssetId: string;
+  hopCount: number;
+  riskScore: number;
+  riskLevel: string;
+  findingCount: number;
+  findings: EngineFinding[];
+  nodeIds: string[];
+  edgeIds: string[];
+  summary: string;
+  nodes: EngineNode[];
+  edges: EngineEdge[];
+}
+
+interface EngineDynamicPathsResult {
+  pathCount: number;
+  nodeCount: number;
+  edgeCount: number;
+  highestRiskScore: number;
+  highestRiskLevel: string;
+  paths: EngineDynamicPath[];
+}
+
 @Injectable()
 export class GraphService {
   private readonly logger = new Logger(GraphService.name);
@@ -123,6 +165,64 @@ export class GraphService {
       relation: edge.type,
       properties: edge.action ? { action: edge.action } : undefined,
     };
+  }
+
+  private mapFinding(f: EngineFinding): FindingDto {
+    return {
+      id: f.id,
+      name: f.name,
+      source: f.source,
+      severity: f.severity,
+      cvssScore: f.cvss_score,
+      cveId: f.cve_id,
+      findingType: f.finding_type,
+      status: f.status,
+      assetId: f.asset_id,
+    };
+  }
+
+  private mapDynamicPath(p: EngineDynamicPath): DynamicPathDto {
+    return {
+      pathId: p.pathId,
+      sourceAssetId: p.sourceAssetId,
+      targetAssetId: p.targetAssetId,
+      hopCount: p.hopCount,
+      riskScore: p.riskScore,
+      riskLevel: p.riskLevel,
+      findingCount: p.findingCount,
+      findings: p.findings.map((f) => this.mapFinding(f)),
+      summary: p.summary,
+      nodes: p.nodes.map((n) => ({ data: this.mapNode(n) })),
+      edges: p.edges.map((e) => ({ data: this.mapEdge(e) })),
+    };
+  }
+
+  // Backend 1의 GET /dynamic-attack-paths (2026-07-23 신규) — 고정 시나리오가 아니라
+  // Neo4j 전체 그래프에서 실시간으로 계산된 공격 경로 목록. 한 번 호출로 경로별
+  // 상세 nodes/edges까지 다 받아오므로, 프론트에서 경로 선택 시 추가 호출이 필요 없다.
+  async findDynamicPaths(query: DynamicPathQueryDto): Promise<DynamicPathsResponseDto> {
+    try {
+      const res = await this.client.get<EngineDynamicPathsResult>('/dynamic-attack-paths', {
+        params: {
+          maxDepth: query.maxDepth,
+          limit: query.limit,
+          minRiskScore: query.minRiskScore,
+          sourceId: query.sourceId,
+          targetId: query.targetId,
+        },
+      });
+      const result = res.data;
+      return {
+        pathCount: result.pathCount,
+        nodeCount: result.nodeCount,
+        edgeCount: result.edgeCount,
+        highestRiskScore: result.highestRiskScore,
+        highestRiskLevel: result.highestRiskLevel,
+        paths: result.paths.map((p) => this.mapDynamicPath(p)),
+      };
+    } catch (err) {
+      throw this.toEngineException(err);
+    }
   }
 
   // Backend 1 엔진 호출 실패를 우리 API의 표준 에러 응답으로 변환한다.
