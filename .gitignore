@@ -1,2 +1,6 @@
 # Vagrant 로컬 상태(VM ID, private key 등) - 머신별 상태이므로 커밋 금지
 .vagrant/
+
+# 배포용 실제 시크릿 값(docker-compose.prod.yml이 참고) — 절대 커밋하지 않음
+# 템플릿은 .env.production.example 참고. frontend/.env.production(공개 URL만 있음)은 대상 아님 — 그쪽 폴더 안 건드림.
+/.env.production

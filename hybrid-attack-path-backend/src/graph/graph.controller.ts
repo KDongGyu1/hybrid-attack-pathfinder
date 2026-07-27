@@ -1,0 +1,125 @@
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Request } from 'express';
+import { GraphService } from './graph.service';
+import { GraphQueryDto } from './dto/graph-query.dto';
+import { PathQueryDto } from './dto/path-query.dto';
+import { GraphResponseDto } from './dto/graph-response.dto';
+import { PathResponseDto } from './dto/path-response.dto';
+import { DynamicPathQueryDto } from './dto/dynamic-path-query.dto';
+import { DynamicPathsResponseDto } from './dto/dynamic-path-response.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
+import { LogsService } from '../logs/logs.service';
+import { AuditAction } from '../logs/dto/log-query.dto';
+
+interface AuthedRequest extends Request {
+  user?: { userId: string; email: string; role: string };
+}
+
+@ApiTags('graph')
+@ApiBearerAuth('access-token')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller({ path: 'graph', version: '1' })
+export class GraphController {
+  constructor(
+    private readonly graphService: GraphService,
+    private readonly logsService: LogsService,
+  ) {}
+
+  private async record(req: AuthedRequest, action: AuditAction, targetResource: string): Promise<void> {
+    if (!req.user) return;
+    await this.logsService.record({
+      userId: req.user.userId,
+      userEmail: req.user.email,
+      action,
+      targetResource,
+      ipAddress: req.ip ?? '-',
+    });
+  }
+
+  @Get()
+  @Roles(Role.VIEWER, Role.ANALYST, Role.ADMIN)
+  @ApiOperation({
+    summary: '전체/조건별 공격 경로 그래프 조회',
+    description: '조건(자산, 민감도 등급 등)에 맞는 공격 경로 그래프를 nodes/edges 형태로 조회',
+  })
+  @ApiResponse({ status: 200, description: '조회 성공 (결과 없으면 빈 nodes/edges 배열 반환)', type: GraphResponseDto })
+  @ApiResponse({ status: 400, description: '쿼리 파라미터 검증 실패' })
+  @ApiResponse({ status: 401, description: '인증 실패' })
+  @ApiResponse({ status: 403, description: '권한 부족' })
+  async findGraph(@Query() query: GraphQueryDto, @Req() req: AuthedRequest): Promise<GraphResponseDto> {
+    const result = await this.graphService.findGraph(query);
+    await this.record(req, AuditAction.VIEW_GRAPH, query.scenarioId ?? 'all-scenarios');
+    return result;
+  }
+
+  // 주의: NestJS는 라우트를 선언 순서대로 매칭한다. 'paths'가 ':scenarioId'보다
+  // 반드시 먼저 와야 GET /graph/paths 요청이 scenarioId="paths"로 잘못 매칭되지 않는다.
+  @Get('paths')
+  @Roles(Role.ANALYST, Role.ADMIN)
+  @ApiOperation({
+    summary: '두 자산 간 공격 경로 탐색',
+    description: '출발 자산에서 목표 자산까지의 가능한 공격 경로들을 Backend 1 Cypher 엔진에 위임하여 탐색',
+  })
+  @ApiResponse({ status: 200, description: '탐색 성공 (경로가 없으면 paths: [] 반환)', type: PathResponseDto })
+  @ApiResponse({ status: 400, description: 'sourceAssetId/targetAssetId 누락 또는 형식 오류' })
+  @ApiResponse({ status: 401, description: '인증 실패' })
+  @ApiResponse({ status: 403, description: '권한 부족' })
+  @ApiResponse({ status: 404, description: 'sourceAssetId 또는 targetAssetId에 해당하는 자산 없음' })
+  async findPaths(@Query() query: PathQueryDto, @Req() req: AuthedRequest): Promise<PathResponseDto> {
+    const result = await this.graphService.findPaths(query);
+    await this.record(req, AuditAction.SEARCH_PATH, `${query.sourceAssetId}->${query.targetAssetId}`);
+    return result;
+  }
+
+  // 'dynamic'도 'paths'와 마찬가지로 ':scenarioId'보다 먼저 선언해야 라우트 매칭이 꼬이지 않는다.
+  @Get('dynamic')
+  @Roles(Role.VIEWER, Role.ANALYST, Role.ADMIN)
+  @ApiOperation({
+    summary: '동적 공격 경로 탐색 (Neo4j 전체 그래프 기준)',
+    description:
+      '고정된 5개 대표 시나리오와 별개로, Backend 1 엔진이 Neo4j 전체 그래프에서 실시간으로 계산한 공격 경로 목록을 조회한다. 각 경로는 자체 nodes/edges를 포함하므로 추가 조회 없이 바로 그래프 렌더링에 사용 가능하다.',
+  })
+  @ApiResponse({ status: 200, description: '조회 성공', type: DynamicPathsResponseDto })
+  @ApiResponse({ status: 400, description: '쿼리 파라미터 검증 실패' })
+  @ApiResponse({ status: 401, description: '인증 실패' })
+  @ApiResponse({ status: 403, description: '권한 부족' })
+  @ApiResponse({ status: 503, description: 'Backend 1(Neo4j 탐색 엔진) 서버에 연결할 수 없음' })
+  async findDynamicPaths(
+    @Query() query: DynamicPathQueryDto,
+    @Req() req: AuthedRequest,
+  ): Promise<DynamicPathsResponseDto> {
+    const result = await this.graphService.findDynamicPaths(query);
+    await this.record(req, AuditAction.VIEW_DYNAMIC_PATHS, `maxDepth=${query.maxDepth ?? '-'}&limit=${query.limit ?? '-'}`);
+    return result;
+  }
+
+  @Get(':scenarioId')
+  @Roles(Role.VIEWER, Role.ANALYST, Role.ADMIN)
+  @ApiParam({ name: 'scenarioId', example: 'S1-A' })
+  @ApiOperation({
+    summary: '시나리오별 공격 경로 그래프 조회',
+    description: '특정 공격 시나리오 ID에 해당하는 그래프 전체 조회',
+  })
+  @ApiResponse({ status: 200, description: '조회 성공', type: GraphResponseDto })
+  @ApiResponse({ status: 401, description: '인증 실패' })
+  @ApiResponse({ status: 403, description: '권한 부족' })
+  @ApiResponse({ status: 404, description: '존재하지 않는 시나리오 ID' })
+  async findGraphByScenario(
+    @Param('scenarioId') scenarioId: string,
+    @Req() req: AuthedRequest,
+  ): Promise<GraphResponseDto> {
+    const result = await this.graphService.findGraphByScenario(scenarioId);
+    await this.record(req, AuditAction.VIEW_GRAPH, scenarioId);
+    return result;
+  }
+}
