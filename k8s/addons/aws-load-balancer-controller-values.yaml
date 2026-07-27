@@ -1,0 +1,9 @@
+clusterName: hap-eks
+region: ap-northeast-2
+vpcId: ${PROD_VPC_ID}
+
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+  annotations:
+    eks.amazonaws.com/role-arn: ${IRSA_LB_CONTROLLER_ROLE_ARN}
