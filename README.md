@@ -16,15 +16,50 @@
 
 ## 아키텍처
 
+### 전체 인프라 구조 (2-VPC · 단일 계정 · ap-northeast-2, Terraform 기준)
+
+```
+[온프레미스 192.168.0.0/24]                 [AWS 단일 계정 · ap-northeast-2]
+ 웹 서비스(WordPress, IAM 키) ──S3 백업──▶  ┌ Prod VPC 10.0.0.0/16 (분석 대상)
+ DB(MySQL)                                 │   Public(2a/2c): ALB · NAT · IGW
+                                            │   Private-App(2a/2c): EKS(Gitea Pod)
+                                            │   Private-DB(2a/2c): RDS(PostgreSQL)
+                                            │   S3 · ECR · KMS · Secrets Manager · IAM
+                                            │            ▲ VPC Peering (SOC가 Prod 수집)
+                                            └ SOC VPC 10.1.0.0/16 (분석 시스템)
+                                                Public(2a/2c): ALB(대시보드) · NAT
+                                                Private-App(2a/2c): 수집·Neo4j·API 서버 3대
+                                                Private-DB(2a/2c): RDS(auth)
+                                                로그: S3 / CloudWatch
+```
+
+각 VPC는 2 AZ(`ap-northeast-2a`/`2c`) × 3계층(Public/Private-App/Private-DB) 구조이며, 두 VPC는
+VPC Peering으로 연결됩니다. 온프레미스(Vagrant, `192.168.0.0/24`)는 VPC가 아닌 별도 환경으로, VPN
+없이 IAM 액세스 키로만 AWS와 연동합니다. 리소스 상세(모듈별 구현)는 [`terraform/README.md`](terraform/README.md) 참고.
+
+| VPC | 역할 | CIDR |
+| --- | --- | --- |
+| **Prod VPC** | 분석 대상 (Gitea/EKS·RDS·S3 등) | `10.0.0.0/16` |
+| **SOC VPC** | 분석 시스템 (수집·Neo4j·API·로그) | `10.1.0.0/16` |
+
+**SOC VPC 서버 3대** (`terraform/modules/ec2_soc/main.tf` 기준, 모두 Private-App 서브넷):
+
+| 서버 | Private IP | 역할 | 소프트웨어 |
+| --- | --- | --- | --- |
+| `hap-soc-collector` | `10.1.20.10` | 자산·취약점 수집 | Nmap, Trivy, Scout Suite, AWS CLI (`collector/`) |
+| `hap-soc-graph` | `10.1.20.20` | 그래프 DB + 탐색 엔진 | Neo4j, Backend1 FastAPI (`app/`) |
+| `hap-soc-api` | `10.1.20.30` | API + 프론트 | nginx, Backend2 NestJS, Frontend Next.js |
+
 ### 서비스 구성 (데이터 흐름)
 
 ```mermaid
 flowchart LR
-    FE["Frontend<br/>Next.js"] -->|REST /api/v1| BE2["Backend2 API<br/>NestJS"]
+    FE["Frontend<br/>Next.js<br/>(hap-soc-api)"] -->|REST /api/v1| BE2["Backend2 API<br/>NestJS<br/>(hap-soc-api)"]
     BE2 -->|PostgreSQL| DB[(PostgreSQL<br/>계정·자산·시나리오·감사로그)]
-    BE2 -->|HTTP| BE1["Backend1 엔진<br/>FastAPI"]
-    BE1 --> NEO[(Neo4j<br/>그래프 DB)]
+    BE2 -->|HTTP :8000| BE1["Backend1 엔진<br/>FastAPI<br/>(hap-soc-graph)"]
+    BE1 --> NEO[(Neo4j<br/>hap-soc-graph)]
     COL["Collector<br/>hap-soc-collector"] -.수동 수집.-> BE1
+    PROD["Prod VPC<br/>(EKS/Gitea, RDS, S3 등)"] -.VPC Peering 수집.-> COL
 ```
 
 - **Frontend**(Next.js): 로그인, 자산 목록, 시나리오/동적 공격 경로 그래프 시각화(Cytoscape.js), 감사 로그 화면
@@ -42,16 +77,6 @@ ALB(443, hap-soc.kro.kr) → nginx:3000 → /api/*  → NestJS(내부 4000)
 ```
 
 `docker-compose.prod.yml` + `nginx/nginx.conf` 기준.
-
-### AWS 인프라 — 2-VPC (Terraform 기준)
-
-| VPC | 역할 | CIDR |
-| --- | --- | --- |
-| **Prod VPC** | 분석 대상 (Gitea/EKS·RDS·S3 등) | `10.0.0.0/16` |
-| **SOC VPC** | 분석 시스템 (수집·Neo4j·API·로그) | `10.1.0.0/16` |
-
-두 VPC는 VPC Peering으로 연결됩니다. 온프레미스(Vagrant, `192.168.0.0/24`)는 VPC가 아닌 별도 환경으로,
-VPN 없이 IAM 액세스 키로만 AWS와 연동합니다. 상세 리소스 구성은 [`terraform/README.md`](terraform/README.md) 참고.
 
 ## 디렉터리 구조
 
@@ -243,6 +268,3 @@ git 커밋 이력과 대조해 확인함).
 | 김동규 | 인프라3 — 자산 수집 | 자산 데이터 수집 자동화, 그래프 DB 연동 | `collector/` |
 | 김상범 | 백엔드1 — 탐색 엔진·그래프 DB | 공격 경로 탐색 엔진, 그래프 DB 설계 | `app/`, `scripts/`, `docs/backend1-neo4j-design.md` |
 | 윤지훈 | 백엔드2 — API·시각화·인증 | API 서버, 프론트 시각화, 인증·인가 | `hybrid-attack-path-backend/`, `hybrid-attack-path-frontend/` |
-
-담당 표는 팀 계획서(사용자 제공)가 출처이며, "저장소 위치" 열만 각 디렉터리/브랜치의 실제 git
-커밋 작성자와 대조해 확인했습니다.
