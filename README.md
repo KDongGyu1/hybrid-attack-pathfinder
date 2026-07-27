@@ -232,4 +232,16 @@ cp collector/.env.production.example .env.production
 
 ## 팀/역할
 
-브랜치·문서에 팀명(**red-red**) 외 구성원별 역할을 명시한 자료는 확인되지 않아 생략합니다.
+팀 프로젝트 계획서 기준(괄호는 계획서상 코드 담당 영역 → 저장소 디렉터리/브랜치 매핑이며,
+git 커밋 이력과 대조해 확인함).
+
+| 이름 | 역할 | 코드 담당 | 저장소 위치 |
+| --- | --- | --- | --- |
+| 윤지수 (팀장) | 인프라1 — 환경 구성·IaC | 하이브리드 환경 구성, IaC | `terraform/`, `onprem/` |
+| 김민아 | 인프라2 — IAM·네트워크 | IAM·네트워크 보안 설정 | `terraform/modules/iam`, `terraform/modules/sg` 등 |
+| 김동규 | 인프라3 — 자산 수집 | 자산 데이터 수집 자동화, 그래프 DB 연동 | `collector/` |
+| 김상범 | 백엔드1 — 탐색 엔진·그래프 DB | 공격 경로 탐색 엔진, 그래프 DB 설계 | `feature/backend1-neo4j-engine` 브랜치 |
+| 윤지훈 | 백엔드2 — API·시각화·인증 | API 서버, 프론트 시각화, 인증·인가 | `hybrid-attack-path-backend/`, `hybrid-attack-path-frontend/` |
+
+담당 표는 팀 계획서(사용자 제공)가 출처이며, "저장소 위치" 열만 각 디렉터리/브랜치의 실제 git
+커밋 작성자와 대조해 확인했습니다.
