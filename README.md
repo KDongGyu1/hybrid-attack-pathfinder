@@ -61,15 +61,17 @@ VPN 없이 IAM 액세스 키로만 AWS와 연동합니다. 상세 리소스 구�
 ├── k8s/                           # EKS 위 Gitea 배포 매니페스트(Prod 대상 앱)
 ├── onprem/                        # 온프레미스 랩 (Vagrant: WordPress web + MySQL db)
 ├── collector/                     # hap-soc-collector 자산/취약점 스캔 도구 설치 스크립트
+├── app/                           # Backend1 FastAPI / Neo4j attack path engine
+├── scripts/                       # Backend1 seed, validation queries, detection rules
+├── tests/                         # Backend1 unit tests
 ├── hybrid-attack-path-backend/    # Backend2 REST API (NestJS)
 ├── hybrid-attack-path-frontend/   # 웹 대시보드 (Next.js)
 ├── nginx/                         # 배포용 리버스 프록시 설정
 └── docker-compose.prod.yml        # hap-soc-api EC2 배포용 compose (nginx+api+web)
 ```
 
-Backend1(Neo4j 그래프 탐색 엔진, FastAPI)은 `feature/backend1-neo4j-engine` 브랜치에만 있고,
-**아직 main에 병합되지 않았습니다** (담당자가 별도로 병합 예정). 아래 기술 스택·실행법은 해당 브랜치
-코드를 직접 확인해 작성했습니다.
+Backend1(Neo4j 그래프 탐색 엔진, FastAPI)은 main에 포함되어 있으며, 루트의 `app/`, `scripts/`,
+`docs/backend1-neo4j-design.md`, `tests/`에 구현되어 있습니다.
 
 ## 기술 스택
 
@@ -98,14 +100,15 @@ Neo4j에서 직접 탐색됩니다.
 고정 시나리오 외에, `GET /dynamic-attack-paths`(Backend1)로 Neo4j 전체 그래프에서 실시간 동적 경로
 탐색도 지원합니다(소스: `Internet`/`Credential`/`IAMAccessKey`/`IAMUser`/`Pod`/`ALB`/`OnPremWeb`/`OnPremDB`,
 타깃: `sensitive=true` 노드 또는 `S3Bucket`/`RDS`/`SecretsManager`/`KMSKey`/`ECRRepository`). 실제 탐색되는
-경로 개수는 그래프 데이터 상태에 따라 달라지며, 저장소에 고정된 수치는 없습니다 — **(확인 필요)**.
+경로 개수는 그래프 데이터 상태에 따라 달라지며, 결과는 `riskScore` 내림차순과 `hopCount`
+오름차순으로 정렬됩니다.
 
 리스크 스코어는 `assetSensitivity + internetExposure + permissionRisk + hopRisk + findingRisk`
 (최대 10.0)로 계산되며, `Finding`(Trivy/Scout Suite) 노드가 `HAS_FINDING`으로 연결된 경우 가산됩니다.
 
 ## Neo4j 그래프 모델
 
-`docs/backend1-neo4j-design.md`, `scripts/seed.cypher` 기준(Backend1 브랜치).
+`docs/backend1-neo4j-design.md`, `scripts/seed.cypher` 기준.
 
 **주요 노드 라벨**: `Internet`, `VPC`/`Subnet`, `ALB`, `EKSCluster`/`Pod`/`ServiceAccount`,
 `IAMUser`/`IAMRole`/`IAMPolicy`, `Credential`/`IAMAccessKey`, `S3Bucket`/`LogPrefix`,
@@ -162,7 +165,7 @@ vagrant up hap-onprem-web
 
 상세는 [`onprem/README.md`](onprem/README.md) 참고.
 
-### 4. Backend1 그래프 엔진 (Neo4j + FastAPI) — `feature/backend1-neo4j-engine` 브랜치
+### 4. Backend1 그래프 엔진 (Neo4j + FastAPI)
 
 ```powershell
 docker start hybrid-neo4j        # 최초 1회는 docker-compose.yml로 up (neo4j:5, ports 7474/7687)
@@ -170,11 +173,9 @@ docker cp .\scripts\seed.cypher hybrid-neo4j:/seed.cypher
 docker exec hybrid-neo4j cypher-shell -u neo4j -p password1234 -f /seed.cypher
 ```
 
-FastAPI 서버 기동 명령 자체는 저장소에 스크립트로 존재하지 않습니다. 포트는 `8000`(uvicorn 기본값)이
-맞습니다 — Backend2 `.env.example`에 "uvicorn 기본 포트는 8000"이라는 주석과 함께
-`GRAPH_ENGINE_BASE_URL=http://localhost:8000`이 명시되어 있고, Collector `.env.production.example`의
-`GRAPH_ENGINE_BASE_URL`도 동일하게 `:8000`을 가리킵니다. 다만 정확한 실행 커맨드
-(`uvicorn app.api_server:app --reload` 등 옵션 포함)는 문서화되어 있지 않습니다 — **(확인 필요)**.
+FastAPI 서버는 `uvicorn app.api_server:app --host 0.0.0.0 --port 8000` 형태로 실행합니다.
+Backend2 `.env.example`과 Collector `.env.production.example`의 `GRAPH_ENGINE_BASE_URL`도
+`:8000`을 가리킵니다.
 
 ### 5. Backend2 API (NestJS)
 
@@ -240,7 +241,7 @@ git 커밋 이력과 대조해 확인함).
 | 윤지수 (팀장) | 인프라1 — 환경 구성·IaC | 하이브리드 환경 구성, IaC | `terraform/`, `onprem/` |
 | 김민아 | 인프라2 — IAM·네트워크 | IAM·네트워크 보안 설정 | `terraform/modules/iam`, `terraform/modules/sg` 등 |
 | 김동규 | 인프라3 — 자산 수집 | 자산 데이터 수집 자동화, 그래프 DB 연동 | `collector/` |
-| 김상범 | 백엔드1 — 탐색 엔진·그래프 DB | 공격 경로 탐색 엔진, 그래프 DB 설계 | `feature/backend1-neo4j-engine` 브랜치 |
+| 김상범 | 백엔드1 — 탐색 엔진·그래프 DB | 공격 경로 탐색 엔진, 그래프 DB 설계 | `app/`, `scripts/`, `docs/backend1-neo4j-design.md` |
 | 윤지훈 | 백엔드2 — API·시각화·인증 | API 서버, 프론트 시각화, 인증·인가 | `hybrid-attack-path-backend/`, `hybrid-attack-path-frontend/` |
 
 담당 표는 팀 계획서(사용자 제공)가 출처이며, "저장소 위치" 열만 각 디렉터리/브랜치의 실제 git

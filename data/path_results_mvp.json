@@ -1,0 +1,1650 @@
+{
+  "project": "Hybrid Attack Path Analysis System",
+  "engine": "Backend 1 - Neo4j Attack Path Engine",
+  "neo4jUri": "bolt://127.0.0.1:7687",
+  "scenarioCount": 5,
+  "results": [
+    {
+      "scenarioId": "S1-A",
+      "scenarioName": "dev-01 access key direct policy to customer S3",
+      "scenarioStatus": "POTENTIAL",
+      "sourceAssetId": "hap-dev-01-access-key",
+      "targetAssetId": "hap-customer-data-s3",
+      "riskScore": 7.0,
+      "riskLevel": "HIGH",
+      "riskBreakdown": {
+        "assetSensitivity": 2.0,
+        "internetExposure": 0.0,
+        "permissionRisk": 2.0,
+        "hopRisk": 1.0,
+        "findingRisk": 2.02
+      },
+      "findingSummary": {
+        "total": 1,
+        "critical": 0,
+        "high": 1,
+        "medium": 0,
+        "low": 0,
+        "maxCvss": 8.1,
+        "sources": [
+          "SCOUT_SUITE"
+        ]
+      },
+      "pathCount": 1,
+      "nodes": [
+        {
+          "id": "hap-dev-01-access-key",
+          "label": "hap-dev-01-access-key",
+          "type": "IAMAccessKey",
+          "labels": [
+            "Credential",
+            "IAMAccessKey"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-dev-01-user",
+          "label": "hap-dev-01-user",
+          "type": "IAMUser",
+          "labels": [
+            "IAMUser"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-s3-access-policy",
+          "label": "hap-s3-access-policy",
+          "type": "IAMPolicy",
+          "labels": [
+            "IAMPolicy"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-customer-data-s3",
+          "label": "Customer data S3",
+          "type": "S3Bucket",
+          "labels": [
+            "S3Bucket"
+          ],
+          "environment": "prod",
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": true,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      ],
+      "edges": [
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:16",
+          "source": "hap-dev-01-access-key",
+          "target": "hap-dev-01-user",
+          "type": "AUTHENTICATES_AS",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:17",
+          "source": "hap-dev-01-user",
+          "target": "hap-s3-access-policy",
+          "type": "HAS_PERMISSION",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:18",
+          "source": "hap-s3-access-policy",
+          "target": "hap-customer-data-s3",
+          "type": "CAN_ACCESS",
+          "action": "s3:*",
+          "resourcePrefix": "*",
+          "permissionLevel": "FULL",
+          "subject": null
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-S1-A-1",
+          "sourceAssetId": "hap-dev-01-access-key",
+          "targetAssetId": "hap-customer-data-s3",
+          "hopCount": 3,
+          "riskScore": 7.0,
+          "riskLevel": "HIGH",
+          "riskBreakdown": {
+            "assetSensitivity": 2.0,
+            "internetExposure": 0.0,
+            "permissionRisk": 2.0,
+            "hopRisk": 1.0,
+            "findingRisk": 2.02
+          },
+          "findingSummary": {
+            "total": 1,
+            "critical": 0,
+            "high": 1,
+            "medium": 0,
+            "low": 0,
+            "maxCvss": 8.1,
+            "sources": [
+              "SCOUT_SUITE"
+            ]
+          },
+          "nodeIds": [
+            "hap-dev-01-access-key",
+            "hap-dev-01-user",
+            "hap-s3-access-policy",
+            "hap-customer-data-s3"
+          ],
+          "edgeIds": [
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:16",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:17",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:18"
+          ],
+          "summary": "Compromised dev-01 access key authenticates as hap-dev-01-user and reaches the customer data S3 bucket through the direct S3 policy.",
+          "nodes": [
+            {
+              "id": "hap-dev-01-access-key",
+              "label": "hap-dev-01-access-key",
+              "type": "IAMAccessKey",
+              "labels": [
+                "Credential",
+                "IAMAccessKey"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-dev-01-user",
+              "label": "hap-dev-01-user",
+              "type": "IAMUser",
+              "labels": [
+                "IAMUser"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-s3-access-policy",
+              "label": "hap-s3-access-policy",
+              "type": "IAMPolicy",
+              "labels": [
+                "IAMPolicy"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-customer-data-s3",
+              "label": "Customer data S3",
+              "type": "S3Bucket",
+              "labels": [
+                "S3Bucket"
+              ],
+              "environment": "prod",
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": true,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            }
+          ],
+          "edges": [
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:16",
+              "source": "hap-dev-01-access-key",
+              "target": "hap-dev-01-user",
+              "type": "AUTHENTICATES_AS",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:17",
+              "source": "hap-dev-01-user",
+              "target": "hap-s3-access-policy",
+              "type": "HAS_PERMISSION",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:18",
+              "source": "hap-s3-access-policy",
+              "target": "hap-customer-data-s3",
+              "type": "CAN_ACCESS",
+              "action": "s3:*",
+              "resourcePrefix": "*",
+              "permissionLevel": "FULL",
+              "subject": null
+            }
+          ]
+        }
+      ],
+      "summary": "Compromised dev-01 access key authenticates as hap-dev-01-user and reaches the customer data S3 bucket through the direct S3 policy."
+    },
+    {
+      "scenarioId": "S1-B",
+      "scenarioName": "dev-01 access key assumes readonly role to customer S3",
+      "scenarioStatus": "POTENTIAL",
+      "sourceAssetId": "hap-dev-01-access-key",
+      "targetAssetId": "hap-customer-data-s3",
+      "riskScore": 6.7,
+      "riskLevel": "HIGH",
+      "riskBreakdown": {
+        "assetSensitivity": 2.0,
+        "internetExposure": 0.0,
+        "permissionRisk": 2.0,
+        "hopRisk": 0.7,
+        "findingRisk": 2.02
+      },
+      "findingSummary": {
+        "total": 1,
+        "critical": 0,
+        "high": 1,
+        "medium": 0,
+        "low": 0,
+        "maxCvss": 8.1,
+        "sources": [
+          "SCOUT_SUITE"
+        ]
+      },
+      "pathCount": 1,
+      "nodes": [
+        {
+          "id": "hap-dev-01-access-key",
+          "label": "hap-dev-01-access-key",
+          "type": "IAMAccessKey",
+          "labels": [
+            "Credential",
+            "IAMAccessKey"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-dev-01-user",
+          "label": "hap-dev-01-user",
+          "type": "IAMUser",
+          "labels": [
+            "IAMUser"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-s3-readonly-role",
+          "label": "hap-s3-readonly-role",
+          "type": "IAMRole",
+          "labels": [
+            "IAMRole"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-s3-readonly-policy",
+          "label": "hap-s3-readonly-policy",
+          "type": "IAMPolicy",
+          "labels": [
+            "IAMPolicy"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-customer-data-s3",
+          "label": "Customer data S3",
+          "type": "S3Bucket",
+          "labels": [
+            "S3Bucket"
+          ],
+          "environment": "prod",
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": true,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      ],
+      "edges": [
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:16",
+          "source": "hap-dev-01-access-key",
+          "target": "hap-dev-01-user",
+          "type": "AUTHENTICATES_AS",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:20",
+          "source": "hap-dev-01-user",
+          "target": "hap-s3-readonly-role",
+          "type": "ASSUMES_ROLE",
+          "action": "sts:AssumeRole",
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:21",
+          "source": "hap-s3-readonly-role",
+          "target": "hap-s3-readonly-policy",
+          "type": "HAS_PERMISSION",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:22",
+          "source": "hap-s3-readonly-policy",
+          "target": "hap-customer-data-s3",
+          "type": "CAN_ACCESS",
+          "action": "s3:ListBucket,s3:GetObject",
+          "resourcePrefix": "*",
+          "permissionLevel": "READ",
+          "subject": null
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-S1-B-1",
+          "sourceAssetId": "hap-dev-01-access-key",
+          "targetAssetId": "hap-customer-data-s3",
+          "hopCount": 4,
+          "riskScore": 6.7,
+          "riskLevel": "HIGH",
+          "riskBreakdown": {
+            "assetSensitivity": 2.0,
+            "internetExposure": 0.0,
+            "permissionRisk": 2.0,
+            "hopRisk": 0.7,
+            "findingRisk": 2.02
+          },
+          "findingSummary": {
+            "total": 1,
+            "critical": 0,
+            "high": 1,
+            "medium": 0,
+            "low": 0,
+            "maxCvss": 8.1,
+            "sources": [
+              "SCOUT_SUITE"
+            ]
+          },
+          "nodeIds": [
+            "hap-dev-01-access-key",
+            "hap-dev-01-user",
+            "hap-s3-readonly-role",
+            "hap-s3-readonly-policy",
+            "hap-customer-data-s3"
+          ],
+          "edgeIds": [
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:16",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:20",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:21",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:22"
+          ],
+          "summary": "Compromised dev-01 access key assumes hap-s3-readonly-role and reaches the customer data S3 bucket through the readonly policy.",
+          "nodes": [
+            {
+              "id": "hap-dev-01-access-key",
+              "label": "hap-dev-01-access-key",
+              "type": "IAMAccessKey",
+              "labels": [
+                "Credential",
+                "IAMAccessKey"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-dev-01-user",
+              "label": "hap-dev-01-user",
+              "type": "IAMUser",
+              "labels": [
+                "IAMUser"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-s3-readonly-role",
+              "label": "hap-s3-readonly-role",
+              "type": "IAMRole",
+              "labels": [
+                "IAMRole"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-s3-readonly-policy",
+              "label": "hap-s3-readonly-policy",
+              "type": "IAMPolicy",
+              "labels": [
+                "IAMPolicy"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-customer-data-s3",
+              "label": "Customer data S3",
+              "type": "S3Bucket",
+              "labels": [
+                "S3Bucket"
+              ],
+              "environment": "prod",
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": true,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            }
+          ],
+          "edges": [
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:16",
+              "source": "hap-dev-01-access-key",
+              "target": "hap-dev-01-user",
+              "type": "AUTHENTICATES_AS",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:20",
+              "source": "hap-dev-01-user",
+              "target": "hap-s3-readonly-role",
+              "type": "ASSUMES_ROLE",
+              "action": "sts:AssumeRole",
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:21",
+              "source": "hap-s3-readonly-role",
+              "target": "hap-s3-readonly-policy",
+              "type": "HAS_PERMISSION",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:22",
+              "source": "hap-s3-readonly-policy",
+              "target": "hap-customer-data-s3",
+              "type": "CAN_ACCESS",
+              "action": "s3:ListBucket,s3:GetObject",
+              "resourcePrefix": "*",
+              "permissionLevel": "READ",
+              "subject": null
+            }
+          ]
+        }
+      ],
+      "summary": "Compromised dev-01 access key assumes hap-s3-readonly-role and reaches the customer data S3 bucket through the readonly policy."
+    },
+    {
+      "scenarioId": "S2",
+      "scenarioName": "Internet to Gitea Pod and RDS",
+      "scenarioStatus": "POTENTIAL",
+      "sourceAssetId": "internet",
+      "targetAssetId": "hap-gitea-db",
+      "riskScore": 6.7,
+      "riskLevel": "HIGH",
+      "riskBreakdown": {
+        "assetSensitivity": 2.0,
+        "internetExposure": 1.2,
+        "permissionRisk": 0.0,
+        "hopRisk": 1.0,
+        "findingRisk": 2.5
+      },
+      "findingSummary": {
+        "total": 2,
+        "critical": 1,
+        "high": 0,
+        "medium": 1,
+        "low": 0,
+        "maxCvss": 9.8,
+        "sources": [
+          "SCOUT_SUITE",
+          "TRIVY"
+        ]
+      },
+      "pathCount": 1,
+      "nodes": [
+        {
+          "id": "internet",
+          "label": "External attacker / Internet",
+          "type": "Internet",
+          "labels": [
+            "Internet"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-prod-alb",
+          "label": "Prod ALB",
+          "type": "ALB",
+          "labels": [
+            "ALB"
+          ],
+          "environment": "prod",
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "pod-gitea-app",
+          "label": "Gitea application Pod",
+          "type": "Pod",
+          "labels": [
+            "Pod"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": "prod",
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-gitea-db",
+          "label": "Gitea RDS PostgreSQL",
+          "type": "RDS",
+          "labels": [
+            "RDS"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": true,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      ],
+      "edges": [
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:8",
+          "source": "internet",
+          "target": "hap-prod-alb",
+          "type": "EXPOSED_TO_INTERNET",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:10",
+          "source": "hap-prod-alb",
+          "target": "pod-gitea-app",
+          "type": "CAN_MOVE_TO",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:12",
+          "source": "pod-gitea-app",
+          "target": "hap-gitea-db",
+          "type": "CONNECTS_TO",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-S2-1",
+          "sourceAssetId": "internet",
+          "targetAssetId": "hap-gitea-db",
+          "hopCount": 3,
+          "riskScore": 6.7,
+          "riskLevel": "HIGH",
+          "riskBreakdown": {
+            "assetSensitivity": 2.0,
+            "internetExposure": 1.2,
+            "permissionRisk": 0.0,
+            "hopRisk": 1.0,
+            "findingRisk": 2.5
+          },
+          "findingSummary": {
+            "total": 2,
+            "critical": 1,
+            "high": 0,
+            "medium": 1,
+            "low": 0,
+            "maxCvss": 9.8,
+            "sources": [
+              "SCOUT_SUITE",
+              "TRIVY"
+            ]
+          },
+          "nodeIds": [
+            "internet",
+            "hap-prod-alb",
+            "pod-gitea-app",
+            "hap-gitea-db"
+          ],
+          "edgeIds": [
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:8",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:10",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:12"
+          ],
+          "summary": "Internet traffic reaches hap-prod-alb on HTTP/80, the ALB can move to pod-gitea-app, and the Pod connects to the Gitea RDS PostgreSQL database.",
+          "nodes": [
+            {
+              "id": "internet",
+              "label": "External attacker / Internet",
+              "type": "Internet",
+              "labels": [
+                "Internet"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-prod-alb",
+              "label": "Prod ALB",
+              "type": "ALB",
+              "labels": [
+                "ALB"
+              ],
+              "environment": "prod",
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "pod-gitea-app",
+              "label": "Gitea application Pod",
+              "type": "Pod",
+              "labels": [
+                "Pod"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": "prod",
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-gitea-db",
+              "label": "Gitea RDS PostgreSQL",
+              "type": "RDS",
+              "labels": [
+                "RDS"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": true,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            }
+          ],
+          "edges": [
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:8",
+              "source": "internet",
+              "target": "hap-prod-alb",
+              "type": "EXPOSED_TO_INTERNET",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:10",
+              "source": "hap-prod-alb",
+              "target": "pod-gitea-app",
+              "type": "CAN_MOVE_TO",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:12",
+              "source": "pod-gitea-app",
+              "target": "hap-gitea-db",
+              "type": "CONNECTS_TO",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            }
+          ]
+        }
+      ],
+      "summary": "Internet traffic reaches hap-prod-alb on HTTP/80, the ALB can move to pod-gitea-app, and the Pod connects to the Gitea RDS PostgreSQL database."
+    },
+    {
+      "scenarioId": "S3",
+      "scenarioName": "On-Prem WordPress key to customer S3 prefixes",
+      "scenarioStatus": "POTENTIAL",
+      "sourceAssetId": "hap-onprem-web",
+      "targetAssetId": "hap-customer-data-s3",
+      "riskScore": 6.6,
+      "riskLevel": "HIGH",
+      "riskBreakdown": {
+        "assetSensitivity": 2.0,
+        "internetExposure": 0.0,
+        "permissionRisk": 1.7,
+        "hopRisk": 1.0,
+        "findingRisk": 1.95
+      },
+      "findingSummary": {
+        "total": 1,
+        "critical": 0,
+        "high": 1,
+        "medium": 0,
+        "low": 0,
+        "maxCvss": 7.8,
+        "sources": [
+          "SCOUT_SUITE"
+        ]
+      },
+      "pathCount": 2,
+      "nodes": [
+        {
+          "id": "hap-onprem-web",
+          "label": "On-Prem WordPress web server",
+          "type": "OnPremWeb",
+          "labels": [
+            "OnPremWeb"
+          ],
+          "environment": "on-prem",
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-onprem-web-key",
+          "label": "hap-onprem-web-key",
+          "type": "IAMAccessKey",
+          "labels": [
+            "Credential",
+            "IAMAccessKey"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-onprem-web-s3-policy",
+          "label": "hap-onprem-web-s3-policy",
+          "type": "IAMPolicy",
+          "labels": [
+            "IAMPolicy"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-customer-data-s3",
+          "label": "Customer data S3",
+          "type": "S3Bucket",
+          "labels": [
+            "S3Bucket"
+          ],
+          "environment": "prod",
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": true,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      ],
+      "edges": [
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:24",
+          "source": "hap-onprem-web",
+          "target": "hap-onprem-web-key",
+          "type": "HAS_CREDENTIAL",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:27",
+          "source": "hap-onprem-web-key",
+          "target": "hap-onprem-web-s3-policy",
+          "type": "HAS_PERMISSION",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:29",
+          "source": "hap-onprem-web-s3-policy",
+          "target": "hap-customer-data-s3",
+          "type": "CAN_ACCESS",
+          "action": "s3:PutObject",
+          "resourcePrefix": "wordpress-db/",
+          "permissionLevel": "WRITE",
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:28",
+          "source": "hap-onprem-web-s3-policy",
+          "target": "hap-customer-data-s3",
+          "type": "CAN_ACCESS",
+          "action": "s3:PutObject",
+          "resourcePrefix": "wordpress-files/",
+          "permissionLevel": "WRITE",
+          "subject": null
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-S3-1",
+          "sourceAssetId": "hap-onprem-web",
+          "targetAssetId": "hap-customer-data-s3",
+          "hopCount": 3,
+          "riskScore": 6.6,
+          "riskLevel": "HIGH",
+          "riskBreakdown": {
+            "assetSensitivity": 2.0,
+            "internetExposure": 0.0,
+            "permissionRisk": 1.7,
+            "hopRisk": 1.0,
+            "findingRisk": 1.95
+          },
+          "findingSummary": {
+            "total": 1,
+            "critical": 0,
+            "high": 1,
+            "medium": 0,
+            "low": 0,
+            "maxCvss": 7.8,
+            "sources": [
+              "SCOUT_SUITE"
+            ]
+          },
+          "nodeIds": [
+            "hap-onprem-web",
+            "hap-onprem-web-key",
+            "hap-onprem-web-s3-policy",
+            "hap-customer-data-s3"
+          ],
+          "edgeIds": [
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:24",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:27",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:29"
+          ],
+          "summary": "Compromised On-Prem WordPress host uses hap-onprem-web-key to write to the allowed customer S3 backup prefixes only.",
+          "nodes": [
+            {
+              "id": "hap-onprem-web",
+              "label": "On-Prem WordPress web server",
+              "type": "OnPremWeb",
+              "labels": [
+                "OnPremWeb"
+              ],
+              "environment": "on-prem",
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-onprem-web-key",
+              "label": "hap-onprem-web-key",
+              "type": "IAMAccessKey",
+              "labels": [
+                "Credential",
+                "IAMAccessKey"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-onprem-web-s3-policy",
+              "label": "hap-onprem-web-s3-policy",
+              "type": "IAMPolicy",
+              "labels": [
+                "IAMPolicy"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-customer-data-s3",
+              "label": "Customer data S3",
+              "type": "S3Bucket",
+              "labels": [
+                "S3Bucket"
+              ],
+              "environment": "prod",
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": true,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            }
+          ],
+          "edges": [
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:24",
+              "source": "hap-onprem-web",
+              "target": "hap-onprem-web-key",
+              "type": "HAS_CREDENTIAL",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:27",
+              "source": "hap-onprem-web-key",
+              "target": "hap-onprem-web-s3-policy",
+              "type": "HAS_PERMISSION",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:29",
+              "source": "hap-onprem-web-s3-policy",
+              "target": "hap-customer-data-s3",
+              "type": "CAN_ACCESS",
+              "action": "s3:PutObject",
+              "resourcePrefix": "wordpress-db/",
+              "permissionLevel": "WRITE",
+              "subject": null
+            }
+          ]
+        },
+        {
+          "pathId": "path-S3-2",
+          "sourceAssetId": "hap-onprem-web",
+          "targetAssetId": "hap-customer-data-s3",
+          "hopCount": 3,
+          "riskScore": 6.6,
+          "riskLevel": "HIGH",
+          "riskBreakdown": {
+            "assetSensitivity": 2.0,
+            "internetExposure": 0.0,
+            "permissionRisk": 1.7,
+            "hopRisk": 1.0,
+            "findingRisk": 1.95
+          },
+          "findingSummary": {
+            "total": 1,
+            "critical": 0,
+            "high": 1,
+            "medium": 0,
+            "low": 0,
+            "maxCvss": 7.8,
+            "sources": [
+              "SCOUT_SUITE"
+            ]
+          },
+          "nodeIds": [
+            "hap-onprem-web",
+            "hap-onprem-web-key",
+            "hap-onprem-web-s3-policy",
+            "hap-customer-data-s3"
+          ],
+          "edgeIds": [
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:24",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:27",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:28"
+          ],
+          "summary": "Compromised On-Prem WordPress host uses hap-onprem-web-key to write to the allowed customer S3 backup prefixes only.",
+          "nodes": [
+            {
+              "id": "hap-onprem-web",
+              "label": "On-Prem WordPress web server",
+              "type": "OnPremWeb",
+              "labels": [
+                "OnPremWeb"
+              ],
+              "environment": "on-prem",
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-onprem-web-key",
+              "label": "hap-onprem-web-key",
+              "type": "IAMAccessKey",
+              "labels": [
+                "Credential",
+                "IAMAccessKey"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-onprem-web-s3-policy",
+              "label": "hap-onprem-web-s3-policy",
+              "type": "IAMPolicy",
+              "labels": [
+                "IAMPolicy"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-customer-data-s3",
+              "label": "Customer data S3",
+              "type": "S3Bucket",
+              "labels": [
+                "S3Bucket"
+              ],
+              "environment": "prod",
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": true,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            }
+          ],
+          "edges": [
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:24",
+              "source": "hap-onprem-web",
+              "target": "hap-onprem-web-key",
+              "type": "HAS_CREDENTIAL",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:27",
+              "source": "hap-onprem-web-key",
+              "target": "hap-onprem-web-s3-policy",
+              "type": "HAS_PERMISSION",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:28",
+              "source": "hap-onprem-web-s3-policy",
+              "target": "hap-customer-data-s3",
+              "type": "CAN_ACCESS",
+              "action": "s3:PutObject",
+              "resourcePrefix": "wordpress-files/",
+              "permissionLevel": "WRITE",
+              "subject": null
+            }
+          ]
+        }
+      ],
+      "summary": "Compromised On-Prem WordPress host uses hap-onprem-web-key to write to the allowed customer S3 backup prefixes only."
+    },
+    {
+      "scenarioId": "S4",
+      "scenarioName": "Gitea Pod IRSA to Secret and RDS",
+      "scenarioStatus": "POTENTIAL",
+      "sourceAssetId": "pod-gitea-app",
+      "targetAssetId": "hap-gitea-db",
+      "riskScore": 6.8,
+      "riskLevel": "HIGH",
+      "riskBreakdown": {
+        "assetSensitivity": 2.0,
+        "internetExposure": 0.0,
+        "permissionRisk": 1.6,
+        "hopRisk": 0.7,
+        "findingRisk": 2.45
+      },
+      "findingSummary": {
+        "total": 1,
+        "critical": 1,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "maxCvss": 9.8,
+        "sources": [
+          "TRIVY"
+        ]
+      },
+      "pathCount": 1,
+      "nodes": [
+        {
+          "id": "pod-gitea-app",
+          "label": "Gitea application Pod",
+          "type": "Pod",
+          "labels": [
+            "Pod"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": "prod",
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "gitea-sa",
+          "label": "gitea-sa",
+          "type": "ServiceAccount",
+          "labels": [
+            "ServiceAccount"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": "prod",
+          "irsaSubject": "system:serviceaccount:prod:gitea-sa",
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-irsa-gitea-role",
+          "label": "hap-irsa-gitea-role",
+          "type": "IAMRole",
+          "labels": [
+            "IAMRole"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": "system:serviceaccount:prod:gitea-sa"
+        },
+        {
+          "id": "hap-gitea-role-policy",
+          "label": "hap-gitea-role-policy",
+          "type": "IAMPolicy",
+          "labels": [
+            "IAMPolicy"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": null,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "gitea-db-credentials",
+          "label": "Gitea DB credentials mounted by CSI",
+          "type": "SecretsManager",
+          "labels": [
+            "SecretsManager"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": true,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        },
+        {
+          "id": "hap-gitea-db",
+          "label": "Gitea RDS PostgreSQL",
+          "type": "RDS",
+          "labels": [
+            "RDS"
+          ],
+          "environment": null,
+          "assetRole": null,
+          "sensitivityLevel": null,
+          "riskLevel": null,
+          "sensitive": true,
+          "namespace": null,
+          "irsaSubject": null,
+          "trustedSubject": null
+        }
+      ],
+      "edges": [
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:40",
+          "source": "pod-gitea-app",
+          "target": "gitea-sa",
+          "type": "USES_SERVICE_ACCOUNT",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:41",
+          "source": "gitea-sa",
+          "target": "hap-irsa-gitea-role",
+          "type": "IRSA_LINKED_TO",
+          "action": "sts:AssumeRoleWithWebIdentity",
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": "system:serviceaccount:prod:gitea-sa"
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:42",
+          "source": "hap-irsa-gitea-role",
+          "target": "hap-gitea-role-policy",
+          "type": "HAS_PERMISSION",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:43",
+          "source": "hap-gitea-role-policy",
+          "target": "gitea-db-credentials",
+          "type": "CAN_ACCESS",
+          "action": "secretsmanager:GetSecretValue",
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        },
+        {
+          "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:45",
+          "source": "gitea-db-credentials",
+          "target": "hap-gitea-db",
+          "type": "CONNECTS_TO",
+          "action": null,
+          "resourcePrefix": null,
+          "permissionLevel": null,
+          "subject": null
+        }
+      ],
+      "paths": [
+        {
+          "pathId": "path-S4-1",
+          "sourceAssetId": "pod-gitea-app",
+          "targetAssetId": "hap-gitea-db",
+          "hopCount": 5,
+          "riskScore": 6.8,
+          "riskLevel": "HIGH",
+          "riskBreakdown": {
+            "assetSensitivity": 2.0,
+            "internetExposure": 0.0,
+            "permissionRisk": 1.6,
+            "hopRisk": 0.7,
+            "findingRisk": 2.45
+          },
+          "findingSummary": {
+            "total": 1,
+            "critical": 1,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "maxCvss": 9.8,
+            "sources": [
+              "TRIVY"
+            ]
+          },
+          "nodeIds": [
+            "pod-gitea-app",
+            "gitea-sa",
+            "hap-irsa-gitea-role",
+            "hap-gitea-role-policy",
+            "gitea-db-credentials",
+            "hap-gitea-db"
+          ],
+          "edgeIds": [
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:40",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:41",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:42",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:43",
+            "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:45"
+          ],
+          "summary": "Gitea Pod uses gitea-sa, assumes hap-irsa-gitea-role, reads gitea-db-credentials backed by hap-db-secret, and reaches the RDS database.",
+          "nodes": [
+            {
+              "id": "pod-gitea-app",
+              "label": "Gitea application Pod",
+              "type": "Pod",
+              "labels": [
+                "Pod"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": "prod",
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "gitea-sa",
+              "label": "gitea-sa",
+              "type": "ServiceAccount",
+              "labels": [
+                "ServiceAccount"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": "prod",
+              "irsaSubject": "system:serviceaccount:prod:gitea-sa",
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-irsa-gitea-role",
+              "label": "hap-irsa-gitea-role",
+              "type": "IAMRole",
+              "labels": [
+                "IAMRole"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": "system:serviceaccount:prod:gitea-sa"
+            },
+            {
+              "id": "hap-gitea-role-policy",
+              "label": "hap-gitea-role-policy",
+              "type": "IAMPolicy",
+              "labels": [
+                "IAMPolicy"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": null,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "gitea-db-credentials",
+              "label": "Gitea DB credentials mounted by CSI",
+              "type": "SecretsManager",
+              "labels": [
+                "SecretsManager"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": true,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            },
+            {
+              "id": "hap-gitea-db",
+              "label": "Gitea RDS PostgreSQL",
+              "type": "RDS",
+              "labels": [
+                "RDS"
+              ],
+              "environment": null,
+              "assetRole": null,
+              "sensitivityLevel": null,
+              "riskLevel": null,
+              "sensitive": true,
+              "namespace": null,
+              "irsaSubject": null,
+              "trustedSubject": null
+            }
+          ],
+          "edges": [
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:40",
+              "source": "pod-gitea-app",
+              "target": "gitea-sa",
+              "type": "USES_SERVICE_ACCOUNT",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:41",
+              "source": "gitea-sa",
+              "target": "hap-irsa-gitea-role",
+              "type": "IRSA_LINKED_TO",
+              "action": "sts:AssumeRoleWithWebIdentity",
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": "system:serviceaccount:prod:gitea-sa"
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:42",
+              "source": "hap-irsa-gitea-role",
+              "target": "hap-gitea-role-policy",
+              "type": "HAS_PERMISSION",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:43",
+              "source": "hap-gitea-role-policy",
+              "target": "gitea-db-credentials",
+              "type": "CAN_ACCESS",
+              "action": "secretsmanager:GetSecretValue",
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            },
+            {
+              "id": "5:b248d0e4-72d3-4d18-bf74-3318b8a688ad:45",
+              "source": "gitea-db-credentials",
+              "target": "hap-gitea-db",
+              "type": "CONNECTS_TO",
+              "action": null,
+              "resourcePrefix": null,
+              "permissionLevel": null,
+              "subject": null
+            }
+          ]
+        }
+      ],
+      "summary": "Gitea Pod uses gitea-sa, assumes hap-irsa-gitea-role, reads gitea-db-credentials backed by hap-db-secret, and reaches the RDS database."
+    }
+  ]
+}
